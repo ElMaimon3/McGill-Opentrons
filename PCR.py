@@ -45,12 +45,7 @@ def run(protocol: protocol_api.ProtocolContext):
         left_pipette.dispense(5, well)
         left_pipette.mix(3, 10, well)  # Mix the contents 3 times with a volume of 10uL
     left_pipette.drop_tip()
-
-	
-    ''' This section is only applicable when centrifuging, it should be included if
-    the door lock is disabled, otherwise the PCR has to be divided in two protocols'''
-    # protocol.pause('Centrifuge and interact to continue')
-
+    
     # thermocycling parameters
     
     pcr_program = [
