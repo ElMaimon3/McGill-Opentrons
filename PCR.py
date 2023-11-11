@@ -26,6 +26,7 @@ def run(protocol: protocol_api.ProtocolContext):
         'p300_multi', 'left', tip_racks=[tiprack])
 
     # commands
+    tc_mod.open_lid()
     master_mix = reservoir.wells_by_name()['A1']
     destination_wells = tc_plate.rows_by_name()['A']
     
