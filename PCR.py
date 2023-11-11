@@ -9,8 +9,7 @@ requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
 	
     # pcr parameters
-    template_dna_in_wells = False
-    centrifuge = False
+    template_dna_in_wells = True
     pcr_volume = 80 # volume in each well, uL
     denaturation_temp = 95
     annealing_temp = 60
@@ -36,16 +35,15 @@ def run(protocol: protocol_api.ProtocolContext):
         left_pipette.dispense(20, well)
     left_pipette.drop_tip()
 
-    '''This section is applicable if the template DNA is the same for all wells'''
-    # dna_template = reservoir.wells_by_name()['A2']
+    if not template_dna_in_wells:
+        dna_template = reservoir.wells_by_name()['A2']
+        left_pipette.pick_up_tip()
+        for well in destination_wells:
+            left_pipette.aspirate(5, dna_template)
+            left_pipette.dispense(5, well)
+            left_pipette.mix(3, 10, well)  # Mix the contents 3 times with a volume of 10uL
+        left_pipette.drop_tip()
 
-    left_pipette.pick_up_tip()
-    for well in destination_wells:
-        left_pipette.aspirate(5, dna_template)
-        left_pipette.dispense(5, well)
-        left_pipette.mix(3, 10, well)  # Mix the contents 3 times with a volume of 10uL
-    left_pipette.drop_tip()
-    
     # thermocycling parameters
     
     pcr_program = [
