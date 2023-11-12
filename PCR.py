@@ -23,7 +23,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # pipettes
     left_pipette = protocol.load_instrument(
-        'p300_single', 'left', tip_racks=[tiprack])
+        'p300_single_gen2', 'left', tip_racks=[tiprack])
 
     # commands
     tc_mod.open_lid()
