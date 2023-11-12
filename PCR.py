@@ -12,7 +12,7 @@ def run(protocol: protocol_api.ProtocolContext):
     template_dna_in_wells = True
     pcr_volume = 80 # volume in each well, uL
     denaturation_temp = 98
-    annealing_temp = 61
+    annealing_temp = 63
     extension_temp = 72
 
     # labware
@@ -51,7 +51,7 @@ def run(protocol: protocol_api.ProtocolContext):
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': 10},   # Denaturation
         {'temperature': annealing_temp, 'hold_time_seconds': 20},   # Annealing
-        {'temperature': extension_temp, 'hold_time_seconds': 45},   # Extension
+        {'temperature': extension_temp, 'hold_time_seconds': 210},   # Extension
     ]
 
     # run thermocycler
