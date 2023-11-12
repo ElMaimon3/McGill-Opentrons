@@ -11,8 +11,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # pcr parameters
     template_dna_in_wells = True
     pcr_volume = 80 # volume in each well, uL
-    denaturation_temp = 95
-    annealing_temp = 63
+    denaturation_temp = 98
+    annealing_temp = 61
     extension_temp = 72
 
     # labware
@@ -50,17 +50,17 @@ def run(protocol: protocol_api.ProtocolContext):
     
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': 10},   # Denaturation
-        {'temperature': annealing_temp, 'hold_time_seconds': 30},   # Annealing
-        {'temperature': extension_temp, 'hold_time_seconds': 210},   # Extension
+        {'temperature': annealing_temp, 'hold_time_seconds': 20},   # Annealing
+        {'temperature': extension_temp, 'hold_time_seconds': 45},   # Extension
     ]
 
     # run thermocycler
     protocol.comment("Running thermocycler...")
     tc_mod.close_lid()
     tc_mod.set_lid_temperature(105)
-    tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= 30, block_max_volume=pcr_volume) # Initial denaturation
-    tc_mod.execute_profile(steps=pcr_program, repetitions=35, block_max_volume=pcr_volume)
-    tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= 60, block_max_volume=pcr_volume) # Final extension
+    tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= 15, block_max_volume=pcr_volume) # Initial denaturation
+    tc_mod.execute_profile(steps=pcr_program, repetitions=30, block_max_volume=pcr_volume)
+    tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= 120, block_max_volume=pcr_volume) # Final extension
     tc_mod.open_lid()
     tc_mod.set_block_temperature(4)
 
