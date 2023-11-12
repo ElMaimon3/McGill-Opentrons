@@ -27,7 +27,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # commands
     tc_mod.open_lid()
-    master_mix = tube_rack.wells_by_name()['A1']
+    master_mix = tube_rack.wells_by_name()['A1'].top(-34)
     destination_wells = [tc_plate.wells_by_name()['A1'],tc_plate.wells_by_name()['B1'],tc_plate.wells_by_name()['C1'],tc_plate.wells_by_name()['D1']]
     
     left_pipette.pick_up_tip()
