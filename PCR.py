@@ -17,27 +17,28 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # labware
     tc_mod = protocol.load_module('thermocycler module')
-    tc_plate = tc_mod.load_labware('nest_96_wellplate_100ul_pcr_full_skirt')
-    reservoir = protocol.load_labware('usascientific_12_reservoir_22ml', '1')
-    tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '3')
+    tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
+    tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
+    tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
 
     # pipettes
     left_pipette = protocol.load_instrument(
-        'p300_multi', 'left', tip_racks=[tiprack])
+        'p300_single', 'left', tip_racks=[tiprack])
 
     # commands
     tc_mod.open_lid()
-    master_mix = reservoir.wells_by_name()['A1']
-    destination_wells = tc_plate.rows_by_name()['A']
+    master_mix = tube_rack.wells_by_name()['A1']
+    destination_wells = [tc_plate.wells_by_name()['A1'],tc_plate.wells_by_name()['A2'],tc_plate.wells_by_name()['A3'],tc_plate.wells_by_name()['A4']]
     
     left_pipette.pick_up_tip()
     for well in destination_wells:
+        left_pipette.mix(1,10,master_mix)
         left_pipette.aspirate(20, master_mix)
         left_pipette.dispense(20, well)
     left_pipette.drop_tip()
 
     if not template_dna_in_wells:
-        dna_template = reservoir.wells_by_name()['A2']
+        dna_template = tube_rack.wells_by_name()['A2']
         left_pipette.pick_up_tip()
         for well in destination_wells:
             left_pipette.aspirate(5, dna_template)
