@@ -33,8 +33,8 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.pick_up_tip()
     for well in destination_wells:
         left_pipette.mix(1,10,master_mix)
-        left_pipette.aspirate(20, master_mix)
-        left_pipette.dispense(20, well)
+        left_pipette.aspirate(44, master_mix)
+        left_pipette.dispense(44, well)
     left_pipette.drop_tip()
 
     if not template_dna_in_wells:
