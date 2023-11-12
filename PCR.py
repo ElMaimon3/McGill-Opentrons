@@ -16,7 +16,7 @@ def run(protocol: protocol_api.ProtocolContext):
     extension_temp = 72
 
     # labware
-    tc_mod = protocol.load_module('thermocycler module_V2')
+    tc_mod = protocol.load_module('thermocycler moduleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
     tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
