@@ -62,6 +62,6 @@ def run(protocol: protocol_api.ProtocolContext):
     tc_mod.execute_profile(steps=pcr_program, repetitions=30, block_max_volume=pcr_volume)
     tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= 120, block_max_volume=pcr_volume) # Final extension
     tc_mod.open_lid()
-    tc_mod.set_block_temperature(4)
+    tc_mod.set_block_temperature(4,hold_time_minutes=10)
 
 
