@@ -61,7 +61,9 @@ def run(protocol: protocol_api.ProtocolContext):
     tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= 15, block_max_volume=pcr_volume) # Initial denaturation
     tc_mod.execute_profile(steps=pcr_program, repetitions=30, block_max_volume=pcr_volume)
     tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= 120, block_max_volume=pcr_volume) # Final extension
+    tc_mod.set_block_temperature(4)
+    tc_mod.deactivate_lid()
     tc_mod.open_lid()
-    tc_mod.set_block_temperature(4,hold_time_minutes=10)
+    
 
 
