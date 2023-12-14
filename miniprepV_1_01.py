@@ -8,7 +8,7 @@ metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2)',
     'author': 'Your Name',
     'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2)',
-    'apiLevel': '2.10'
+    'apiLevel': '2.15'
 }
 
 # Define the protocol
