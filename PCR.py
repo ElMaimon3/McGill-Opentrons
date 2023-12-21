@@ -4,12 +4,12 @@ from opentrons import protocol_api
 # metadata
 metadata = {
     'protocolName': 'PCR',
+    'description': 'Opentrons protocol PCR with template DNA pre loaded on the PCR plate. Depending on the use case, primers have to be added to each sample or to master mix (OT-2)'
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
 	
     # pcr parameters
-    template_dna_in_wells = True
     pcr_volume = 80 # volume in each well, uL
     denaturation_temp = 98
     annealing_temp = 63
@@ -37,14 +37,6 @@ def run(protocol: protocol_api.ProtocolContext):
         left_pipette.dispense(44, well)
     left_pipette.drop_tip()
 
-    if not template_dna_in_wells:
-        dna_template = tube_rack.wells_by_name()['A2']
-        left_pipette.pick_up_tip()
-        for well in destination_wells:
-            left_pipette.aspirate(5, dna_template)
-            left_pipette.dispense(5, well)
-            left_pipette.mix(3, 10, well)  # Mix the contents 3 times with a volume of 10uL
-        left_pipette.drop_tip()
 
     # thermocycling parameters
     
