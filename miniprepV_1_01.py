@@ -13,6 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
+    time_offset = 0 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
@@ -56,7 +57,7 @@ def run(protocol: protocol_api.ProtocolContext):
         p300.drop_tip()
 
     #let it incubate for 5 minutes
-    protocol.delay(minutes=5)
+    protocol.delay(seconds=(300-time_offset))
     ##Should add a minutes - x seconds per sample so then the first sample doesn't incubate for more than 5 minutes
 
     #transfer neutralization buffer to the samples
