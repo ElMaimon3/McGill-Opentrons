@@ -12,8 +12,11 @@ def run(protocol: protocol_api.ProtocolContext):
     # pcr parameters
     pcr_volume = 80 # volume in each well, uL
     denaturation_temp = 98
+    denaturation_time_seconds = 10
     annealing_temp = 63
+    annealing_time_seconds = 20
     extension_temp = 72
+    extension_time_seconds = 210
 
     # labware
     tc_mod = protocol.load_module('thermocyclerModuleV2')
@@ -41,9 +44,9 @@ def run(protocol: protocol_api.ProtocolContext):
     # thermocycling parameters
     
     pcr_program = [
-        {'temperature': denaturation_temp, 'hold_time_seconds': 10},   # Denaturation
-        {'temperature': annealing_temp, 'hold_time_seconds': 20},   # Annealing
-        {'temperature': extension_temp, 'hold_time_seconds': 210},   # Extension
+        {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
+        {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
+        {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},   # Extension
     ]
 
     # run thermocycler
