@@ -8,4 +8,11 @@ metadata = {
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
-    a = 1 #placeholder
+     # labware
+    temp_mod = protocol.load_module('temperature module gen2','5')
+    temp_tubes = temp_mod.load_labware('opentrons_24_aluminumblock_generic_2ml_screwcap')
+    tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
+    tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
+     # pipettes
+    left_pipette = protocol.load_instrument(
+        'p300_single_gen2', 'left', tip_racks=[tiprack])
