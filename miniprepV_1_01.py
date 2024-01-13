@@ -13,7 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
-    time_offset = 0 #to make sure no sample is incubated more than 5 minutes
+    time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
