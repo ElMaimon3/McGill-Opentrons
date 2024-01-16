@@ -29,21 +29,21 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plate
     num_samples = 2
-    initial_samples = plate_96.wells()[2:2+num_samples]  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells()[2:2+num_samples]
-    elute_samples = elute_plate.wells()[2:2+num_samples]
+    initial_samples = plate_96.wells('A3','A4')  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells('A3','A4')
+    elute_samples = elute_plate.wells('A3','A4')
 
     # Define reagent locations on the tube rack
-    lysis_buffer = reagent_reservoir['A1']
-    neutralization_buffer = reagent_reservoir['A2']
-    ethanol = reagent_reservoir['A3']
+    lysis_buffer = reagent_reservoir['A5']
+    neutralization_buffer = reagent_reservoir['A6']
+    ethanol = reagent_reservoir['A7']
     magbeads = tube_rack['A1']
 
     # Define waste location
     waste = reagent_reservoir['A12']
 
     # Define elution buffer location
-    elution_buffer = reagent_reservoir['A4']
+    elution_buffer = reagent_reservoir['A8']
 
     # Perform miniprep protocol
 
