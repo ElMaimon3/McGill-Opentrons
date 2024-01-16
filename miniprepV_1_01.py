@@ -73,7 +73,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(50, magbeads.bottom(1), sample, new_tip='never')
+        p300.transfer(50, magbeads.top(-34), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
     
