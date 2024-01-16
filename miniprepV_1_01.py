@@ -29,9 +29,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plate
     num_samples = 2
-    initial_samples = plate_96.wells()[:num_samples]  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells()[:num_samples]
-    elute_samples = elute_plate.wells()[:num_samples]
+    initial_samples = plate_96.wells()[2:2+num_samples]  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells()[2:2+num_samples]
+    elute_samples = elute_plate.wells()[2:2+num_samples]
 
     # Define reagent locations on the tube rack
     lysis_buffer = reagent_reservoir['A1']
