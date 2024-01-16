@@ -20,7 +20,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '2')
     reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
     mag_module = protocol.load_module('magnetic module gen2', '4')
-    mag_plate = mag_module.load_labware('thermoscientificnunc_96_wellplate_1300ul')
+    mag_plate = mag_module.load_labware('corning_48_wellplate_1.6ml_flat')
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
 
     # Load pipettes
