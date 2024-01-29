@@ -13,6 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
+    depth = 12#depth to take supernatant from plate
     time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
@@ -95,7 +96,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(300, sample.bottom(5), waste, new_tip='never')
+        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
         p300.drop_tip()
     
     #now we need to wash the beads with ethanol twice, and then let it dry
@@ -104,8 +105,9 @@ def run(protocol: protocol_api.ProtocolContext):
     # Wash with 70% ethanol twice
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(200, ethanol.bottom(-12), sample.bottom(5), mix_after=(3, 200), new_tip='never')
+            p300.transfer(200, ethanol.bottom(-12), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(200,sample.top(-depth),waste)
             p300.blow_out(waste) #Does not work indented (is this most efficient)
             p300.drop_tip()
 
@@ -123,7 +125,7 @@ def run(protocol: protocol_api.ProtocolContext):
         p300.drop_tip()
 
     # Incubate for 2 minutes
-    protocol.delay(minutes=5)
+    protocol.delay(minutes=2)
 
     # Engage Magnetic Module Gen 2 to bind DNA again
     mag_module.engage(height_from_base=5)
