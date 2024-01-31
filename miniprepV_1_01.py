@@ -53,7 +53,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         # Transfer resuspension then lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(150,resuspension_buffer.top(-40),sample)
+        p300.transfer(150,resuspension_buffer.top(-40),sample, new_tip='never')
         p300.drop_tip()
         p300.pick_up_tip()
         p300.transfer(150, lysis_buffer.top(-40), sample, new_tip='never')
