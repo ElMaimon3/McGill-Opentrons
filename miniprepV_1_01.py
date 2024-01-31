@@ -13,7 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
-    depth = 20#depth to take supernatant from plate
+    depth = 40#depth to take supernatant from plate
     time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
@@ -21,7 +21,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '2')
     reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
     mag_module = protocol.load_module('magnetic module gen2', '4')
-    mag_plate = mag_module.load_labware('corning_48_wellplate_1.6ml_flat')
+    mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
 
     # Load pipettes
@@ -29,30 +29,34 @@ def run(protocol: protocol_api.ProtocolContext):
     p20 = protocol.load_instrument('p20_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_filtertiprack_20ul', '10')])
 
     # Define sample locations on the 96-well plate
-    num_samples = 2
-    initial_samples = plate_96.wells('A3','A4')  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells('A3','A4')
-    elute_samples = elute_plate.wells('A3','A4')
+    num_samples = 1
+    initial_samples = plate_96.wells('A1')  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells('A5')
+    elute_samples = elute_plate.wells('A2')
 
     # Define reagent locations on the tube rack
-    lysis_buffer = reagent_reservoir['A5']
-    neutralization_buffer = reagent_reservoir['A6']
-    ethanol = reagent_reservoir['A7']
+    resuspension_buffer = tube_rack['A2']
+    lysis_buffer = tube_rack['A5']
+    neutralization_buffer = tube_rack['A6']
+    ethanol = tube_rack['B1']
     magbeads = tube_rack['A1']
 
     # Define waste location
     waste = reagent_reservoir['A12']
 
     # Define elution buffer location
-    elution_buffer = reagent_reservoir['A8']
+    elution_buffer = tube_rack['B2']
 
     # Perform miniprep protocol
 
     #add lysis buffer to samples
     for sample in initial_samples:
-        # Transfer lysis buffer to the sample
+        # Transfer resuspension then lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(150, lysis_buffer.bottom(-12), sample, new_tip='never')
+        p300.transfer(150,resuspension_buffer.top(-40),sample)
+        p300.drop_tip()
+        p300.pick_up_tip()
+        p300.transfer(150, lysis_buffer.top(-40), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -65,7 +69,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(150, neutralization_buffer.bottom(-12), sample, new_tip='never')
+        p300.transfer(150, neutralization_buffer.top(-40), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -74,14 +78,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(50, magbeads.top(-34), sample, new_tip='never')
+        p300.transfer(50, magbeads.top(-40), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
     
     #take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(300, initial_samples[i], mag_samples[i], mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
+        p300.transfer(300, initial_samples[i].top(-40), mag_samples[i], mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
 
