@@ -13,7 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
-    depth = 12#depth to take supernatant from plate
+    depth = 20#depth to take supernatant from plate
     time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
