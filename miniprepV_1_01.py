@@ -111,7 +111,7 @@ def run(protocol: protocol_api.ProtocolContext):
             p300.pick_up_tip()
             p300.transfer(200, ethanol.top(-34), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
-            p300.transfer(200,sample.top(-depth),waste)
+            p300.transfer(200,sample.top(-depth),waste, new_tip='never')
             p300.blow_out(waste) #Does not work indented (is this most efficient)
             p300.drop_tip()
 
