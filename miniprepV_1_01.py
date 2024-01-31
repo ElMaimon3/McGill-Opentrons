@@ -13,7 +13,7 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
-    depth = 40#depth to take supernatant from plate
+    depth = 39#depth to take supernatant from plate
     time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
@@ -30,7 +30,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plate
     num_samples = 1
-    initial_samples = plate_96.wells('A1')  # Adjust the slice to match your sample locations
+    initial_samples = plate_96.wells('A2')  # Adjust the slice to match your sample locations
     mag_samples = mag_plate.wells('A5')
     elute_samples = elute_plate.wells('A2')
 
@@ -53,10 +53,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         # Transfer resuspension then lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(150,resuspension_buffer.top(-40),sample, new_tip='never')
+        p300.transfer(150,resuspension_buffer.top(-38),sample, new_tip='never')
         p300.drop_tip()
         p300.pick_up_tip()
-        p300.transfer(150, lysis_buffer.top(-40), sample, new_tip='never')
+        p300.transfer(150, lysis_buffer.top(-38), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -69,7 +69,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(150, neutralization_buffer.top(-40), sample, new_tip='never')
+        p300.transfer(150, neutralization_buffer.top(-38), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -78,14 +78,14 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(50, magbeads.top(-40), sample, new_tip='never')
+        p300.transfer(50, magbeads.top(-38), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
     
     #take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(300, initial_samples[i].top(-40), mag_samples[i], mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i], mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
 
