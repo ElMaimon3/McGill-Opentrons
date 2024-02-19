@@ -115,7 +115,7 @@ def run(protocol: protocol_api.ProtocolContext):
             p300.drop_tip()
 
     # Air dry for 5 minutes
-    protocol.delay(minutes=5)
+    protocol.delay(minutes=6)
 
     # Disengage Magnetic Module Gen 2 to release DNA
     mag_module.disengage()
