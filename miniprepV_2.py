@@ -77,6 +77,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
+        p300.mix(3,50,magbeads.top(-37))
         p300.transfer(50, magbeads.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
@@ -84,12 +85,14 @@ def run(protocol: protocol_api.ProtocolContext):
     #take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i], mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place    
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
 
 
     # Incubate with magbeads for 5 minutes
+    # This muist be changed to mix periodically with a total incubation of 10 minutes
     protocol.delay(minutes=5) #make the amount of time a variable to change easily. 
 
     # Engage Magnetic Module Gen 2 to bind DNA
