@@ -30,7 +30,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Define sample locations on the 96-well plate
-    num_samples = 1
+    num_samples = 3
     initial_samples = plate_96.wells('C1','C2','C3')  # Adjust the slice to match your sample locations
     mag_samples = mag_plate.wells('C1','C2','C3')
     elute_samples = elute_plate.wells('C1','C2','C3')
@@ -175,10 +175,10 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.delay(minutes=1)
 
     # Transfer eluted DNA to a new well
-    #for sample, elute_sample in mag_samples, elute_samples:
-    p300.pick_up_tip()
-    p300.transfer(20, mag_samples[0].top(-39), elute_samples[0], new_tip='never')
-    p300.drop_tip()
+    for sample, elute_sample in mag_samples, elute_samples:
+        p300.pick_up_tip()
+        p300.transfer(20, sample.top(-39), elute_sample, new_tip='never')
+        p300.drop_tip()
 
     # Disengage Magnetic Module Gen 2
     mag_module.disengage()
