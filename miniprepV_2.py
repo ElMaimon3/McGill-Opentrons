@@ -26,6 +26,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load pipettes
     p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5')])
+    p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
+
 
     # Define sample locations on the 96-well plate
     num_samples = 1
@@ -114,7 +116,11 @@ def run(protocol: protocol_api.ProtocolContext):
             p300.blow_out(waste) #Does not work indented (is this most efficient)
             p300.drop_tip()
 
-    # Air dry for 5 minutes
+    # Remove excess ethanol
+    p20.pick_up_tip()
+    p20.transfer(20,sample.top(-depth),waste, new_tip='never')
+    p20.drop_tip()
+    # Air dry for 6 minutes
     protocol.delay(minutes=6)
 
     # Disengage Magnetic Module Gen 2 to release DNA
