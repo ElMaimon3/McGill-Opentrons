@@ -10,7 +10,10 @@ requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
      # Load pipettes
     p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5')])
-    
+    p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
+    tc_mod = protocol.load_module('thermocyclerModuleV2')
+    tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
+
     temp_mod = protocol.load_module('temperature module gen2','5')
     temp_tubes = temp_mod.load_labware('opentrons_24_aluminumblock_nest_1.5ml_snapcap')
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
@@ -20,7 +23,9 @@ def run(protocol: protocol_api.ProtocolContext):
     temp_mod.set_block_temperature(4)
 
     vector = tube_rack.wells_by_name()['A1']
-
     insert = tube_rack.wells_by_name()['A2']
+    cutsmart = tube_rack.wells_by_name()['A3']
+    h2o = tube_rack.wells_by_name()['A4']
+    
 
     
