@@ -31,9 +31,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plate
     num_samples = 1
-    initial_samples = plate_96.wells('A2')  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells('A5')
-    elute_samples = elute_plate.wells('A2')
+    initial_samples = plate_96.wells('C1')  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells('C1')
+    elute_samples = elute_plate.wells('C1')
 
     # Define reagent locations on the tube rack
     resuspension_buffer = tube_rack['A2']
@@ -54,10 +54,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         # Transfer resuspension then lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(150,resuspension_buffer.top(-38),sample, new_tip='never')
+        p300.transfer(150,resuspension_buffer.top(-37),sample, new_tip='never')
         p300.drop_tip()
         p300.pick_up_tip()
-        p300.transfer(150, lysis_buffer.top(-38), sample, new_tip='never')
+        p300.transfer(150, lysis_buffer.top(-37), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -70,7 +70,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(150, neutralization_buffer.top(-38), sample, new_tip='never')
+        p300.transfer(150, neutralization_buffer.top(-37), sample, new_tip='never')
         p300.mix(5, 200, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -79,7 +79,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(50, magbeads.top(-38), sample, new_tip='never')
+        p300.transfer(50, magbeads.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
     
