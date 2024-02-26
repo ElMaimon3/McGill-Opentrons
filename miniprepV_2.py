@@ -31,9 +31,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plate
     num_samples = 1
-    initial_samples = plate_96.wells('C1','C2')  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells('C1','C2')
-    elute_samples = elute_plate.wells('C1','C2')
+    initial_samples = plate_96.wells('C1','C2','C3')  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells('C1','C2','C3')
+    elute_samples = elute_plate.wells('C1','C2','C3')
 
     # Define reagent locations on the tube rack
     resuspension_buffer = tube_rack['A2']
@@ -120,7 +120,7 @@ def run(protocol: protocol_api.ProtocolContext):
     p20.transfer(20,mag_samples[0].top(-depth),waste, new_tip='never')
     p20.drop_tip()
     
-    # The following two blocks are duplicated and can be deleted after tests
+    # The following blocks until air drying are duplicated and can be deleted after tests
     for _ in range(2): #CHECK THIS LINE OF CODE
         p300.pick_up_tip()
         p300.transfer(200, PE.top(-34), mag_samples[1], mix_after=(3, 200), new_tip='never')
@@ -134,7 +134,24 @@ def run(protocol: protocol_api.ProtocolContext):
     p20.transfer(20,mag_samples[1].top(-depth),waste, new_tip='never')
     p20.drop_tip()
 
-    
+    p300.pick_up_tip()
+    p300.transfer(200, ethanol.top(-34), mag_samples[2], mix_after=(3, 200), new_tip='never')
+    protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+    p300.transfer(200,mag_samples[2].top(-depth),waste, new_tip='never')
+    p300.blow_out(waste) #Does not work indented (is this most efficient)
+    p300.drop_tip()
+
+    p300.pick_up_tip()
+    p300.transfer(200, PE.top(-34), mag_samples[2], mix_after=(3, 200), new_tip='never')
+    protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+    p300.transfer(200,mag_samples[2].top(-depth),waste, new_tip='never')
+    p300.blow_out(waste) #Does not work indented (is this most efficient)
+    p300.drop_tip()
+
+    p20.pick_up_tip()
+    p20.transfer(20,mag_samples[2].top(-depth),waste, new_tip='never')
+    p20.drop_tip()
+
     # Air dry for 6 minutes
     protocol.delay(minutes=6)
 
