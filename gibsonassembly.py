@@ -15,7 +15,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tiprack = protocol.load_labware('opentrons_96_tiprack_20ul', '1')
      # pipettes
     left_pipette = protocol.load_instrument(
-        'p20_single_gen2', 'left', tip_racks=[tiprack])
+        'p20_single_gen2', 'right', tip_racks=[tiprack])
     
     #loaction definitions
     master_mix = tube_rack.wells_by_name()['A1'].top(-34)
