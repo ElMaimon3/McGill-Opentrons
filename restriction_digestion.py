@@ -23,6 +23,7 @@ def run(protocol: protocol_api.ProtocolContext):
     enzyme1 = temp_tubes.wells_by_name()['A1']
     enzyme2 = temp_tubes.wells_by_name()['A2']
     temp_mod.set_block_temperature(4)
+    tc_mod.set_block_temperature(37)
 
     vector = tc_plate.wells_by_name()['A1']
     insert = tc_plate.wells_by_name()['A2']
@@ -37,4 +38,7 @@ def run(protocol: protocol_api.ProtocolContext):
     p20.transfer(50/RE1concentration,enzyme1.top(-30),insert)
     p20.transfer(50/RE2concentration,enzyme2.top(-30),vector)
     p20.transfer(50/RE2concentration,enzyme2.top(-30),insert)
-    
+    protocol.delay(minutes = 30)
+    temp_mod.deactivate()
+    tc_mod.deactivate()
+    protocol.comment('Done')
