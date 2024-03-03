@@ -4,7 +4,8 @@ from opentrons import protocol_api
 # metadata
 metadata = {
     'protocolName': 'PCR',
-    'description': 'Opentrons protocol PCR with template DNA pre loaded on the PCR plate. Depending on the use case, primers have to be added to each sample or to master mix (OT-2)'
+    'description': '''Opentrons PCR with template DNA pre loaded on the PCR plate.
+    Depending on the use case, primers have to be added to each sample or to master mix (OT-2)'''
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
