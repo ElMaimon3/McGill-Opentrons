@@ -100,7 +100,7 @@ def run(protocol: protocol_api.ProtocolContext):
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
 
-
+    # Incubate with magbeads
     for i in range(magbead_incubation_time):
         protocol.delay(seconds=40)
         for sample in mag_samples:
@@ -111,11 +111,15 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Engage Magnetic Module Gen 2 to bind DNA
     mag_module.engage(height_from_base=5)
+    protocol.delay(seconds=30)
 
     #transfer supernatant to waste
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
+        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
+        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
+        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
         p300.transfer(300, sample.top(-depth), waste, new_tip='never')
         p300.drop_tip()
     
@@ -194,7 +198,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Transfer eluted DNA to a new well
     for sample, elute_sample in mag_samples, elute_samples:
         p300.pick_up_tip()
-        p300.transfer(20, sample.top(-39), elute_sample, new_tip='never')
+        p300.transfer(20, sample.top(-depth), elute_sample, new_tip='never')
         p300.drop_tip()
 
     # Disengage Magnetic Module Gen 2
