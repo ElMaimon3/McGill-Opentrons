@@ -7,13 +7,14 @@ from opentrons import protocol_api
 metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2)',
     'author': 'Your Name',
-    'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2)',
+    'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 650uL of culture, 250uL of lysis buffer, 300uL of neutralization buffer, 80uL of magbeads per sample',
     'apiLevel': '2.15'
 }
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
     depth = 39#depth to take supernatant from plate
+    magbead_incubation_time  = 10 # Total, minutes
     time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
@@ -29,11 +30,14 @@ def run(protocol: protocol_api.ProtocolContext):
     p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
 
 
-    # Define sample locations on the 96-well plate
-    num_samples = 3
+    # Define sample locations on the 96-well plates
     initial_samples = plate_96.wells('C1','C2','C3')  # Adjust the slice to match your sample locations
     mag_samples = mag_plate.wells('C1','C2','C3')
     elute_samples = elute_plate.wells('C1','C2','C3')
+    if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
+        raise ValueError("The amount of samples in each plate are not the same!")
+    else:
+        num_samples = len(initial_samples)
 
     # Define reagent locations on the tube rack
     resuspension_buffer = tube_rack['A2']
@@ -53,47 +57,57 @@ def run(protocol: protocol_api.ProtocolContext):
 
     #add lysis buffer to samples
     for sample in initial_samples:
-        # Transfer resuspension then lysis buffer to the sample
+        # Transfer lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(150, lysis_buffer.top(-37), sample, new_tip='never')
-        p300.mix(5, 200, sample)
+        p300.transfer(250, lysis_buffer.top(-37), sample, new_tip='never')
+        p300.mix(5, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
 
+    # Calculate time offset x
+    if num_samples>8:
+        pass
+    else:
+        pass
     #let it incubate for 5 minutes
     protocol.delay(seconds=(300-time_offset))
-    ##Should add a minutes - x seconds per sample so then the first sample doesn't incubate for more than 5 minutes
 
     #transfer neutralization buffer to the samples
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(150, neutralization_buffer.top(-37), sample, new_tip='never')
-        p300.mix(5, 200, sample)
+        p300.transfer(300, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.mix(6, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
-    
+        
     #now we have to add magnetic beads to the plate on the mag module
+    p300.pick_up_tip()
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
-        p300.pick_up_tip()
         p300.mix(3,50,magbeads.top(-37))
-        p300.transfer(50, magbeads.top(-37), sample, new_tip='never')
+        p300.transfer(80, magbeads.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
-        p300.drop_tip()
+    p300.drop_tip()
     
     #take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place    
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 100), new_tip='never') ##check that it transfers to the right place
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place    
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place    
+        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 300), new_tip='never') ##check that it transfers to the right place
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
 
 
-    # Incubate with magbeads for 5 minutes
-    # This muist be changed to mix periodically with a total incubation of 10 minutes
-    protocol.delay(minutes=5) #make the amount of time a variable to change easily. 
+    for i in range(magbead_incubation_time):
+        protocol.delay(seconds=40)
+        for sample in mag_samples:
+            p300.pick_up_tip()
+            p300.mix(1,300,sample)
+            p300.drop_tip()
+
 
     # Engage Magnetic Module Gen 2 to bind DNA
     mag_module.engage(height_from_base=5)
