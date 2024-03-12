@@ -7,7 +7,7 @@ from opentrons import protocol_api
 metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2)',
     'author': 'Your Name',
-    'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 650uL of culture, 250uL of lysis buffer, 300uL of neutralization buffer, 80uL of magbeads per sample',
+    'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 650uL of culture, 250uL of lysis buffer, 300uL of neutralization buffer, 80uL of magbeads, 400uL of wash per sample',
     'apiLevel': '2.15'
 }
 
@@ -15,7 +15,6 @@ metadata = {
 def run(protocol: protocol_api.ProtocolContext):
     depth = 39#depth to take supernatant from plate
     magbead_incubation_time  = 10 # Total, minutes
-    time_offset = 140 #to make sure no sample is incubated more than 5 minutes
 
     # Load labware
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
@@ -66,11 +65,12 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Calculate time offset x
     if num_samples>8:
-        pass
+        num_steps = num_samples//8
+        time_offset = 100*num_steps
     else:
-        pass
-    #let it incubate for 5 minutes
-    protocol.delay(seconds=(300-time_offset))
+        time_offset = 100*num_samples 
+    if time_offset<300:
+        protocol.delay(seconds=(300-time_offset))
 
     #transfer neutralization buffer to the samples
     for sample in initial_samples:
