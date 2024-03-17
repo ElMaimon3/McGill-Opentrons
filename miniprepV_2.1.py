@@ -65,7 +65,7 @@ def run(protocol: protocol_api.ProtocolContext):
     waste = reagent_reservoir['A12']
 
     # Define elution buffer location
-    elution_buffer = tube_rack['A3']
+    elution_buffer = small_tube_rack['A5']
 
     # Perform miniprep protocol
 
@@ -246,7 +246,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Transfer eluted DNA to a new well
     for sample, elute_sample in mag_samples, elute_samples:
         p300.pick_up_tip()
-        p300.transfer(20, sample.top(-depth), elute_sample, new_tip='never')
+        p300.transfer(30, sample.top(-depth), elute_sample, new_tip='never')
         p300.drop_tip()
 
     # Disengage Magnetic Module Gen 2
