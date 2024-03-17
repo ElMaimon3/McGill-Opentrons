@@ -75,7 +75,7 @@ def run(protocol: protocol_api.ProtocolContext):
         else:        
             time_offset = 60*(num_steps+1)
     else:
-        time_offset = 100*num_samples 
+        time_offset = 60*num_samples 
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
