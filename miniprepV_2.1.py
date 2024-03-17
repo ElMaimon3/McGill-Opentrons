@@ -71,9 +71,9 @@ def run(protocol: protocol_api.ProtocolContext):
     if num_samples>8:
         num_steps = num_samples//8
         if num_samples%8==0:
-            time_offset = 100*num_steps
+            time_offset = 60*num_steps
         else:        
-            time_offset = 100*(num_steps+1)
+            time_offset = 60*(num_steps+1)
     else:
         time_offset = 100*num_samples 
     if time_offset<300:
