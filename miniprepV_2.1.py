@@ -16,13 +16,14 @@ metadata = {
 def run(protocol: protocol_api.ProtocolContext):
     depth = 39#depth to take supernatant from plate
     magbead_incubation_time  = 10 # Total, minutes
-    sample_volume = 600
-    lysis_buffer_amount = 300
-    neutralization_buffer_amount = 300
+    sample_volume = 900
+    lysis_buffer_amount = 450
+    neutralization_buffer_amount = 450
 
     # Load labware
+    small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
-    tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '2')
+    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
     reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
     mag_module = protocol.load_module('magnetic module gen2', '4')
     mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
@@ -34,27 +35,33 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Define sample locations on the 96-well plates
-    initial_samples = plate_96.wells('C1','C2','C3')  # Adjust the slice to match your sample locations
-    mag_samples = mag_plate.wells('C1','C2','C3')
-    elute_samples = elute_plate.wells('C1','C2','C3')
+    initial_samples = plate_96.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')  # Adjust the slice to match your sample locations
+    mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
+    elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
         raise ValueError("The amount of samples in each plate are not the same!")
     else:
         num_samples = len(initial_samples)
+    
+    # Define how to wash samples (can be removed for final implementation)
+    Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
+    PB_wash = mag_plate.wells('E2','F2')
+    PE_wash = mag_plate.wells('E3','F3')
+    Eth_wash = mag_plate.wells('E4','F4')
 
     # Define reagent locations on the tube rack
-    resuspension_buffer = tube_rack['A2']
-    lysis_buffer = tube_rack['A5']
-    neutralization_buffer = tube_rack['A6']
-    ethanol = tube_rack['B1']
-    magbeads = tube_rack['A1']
-    PE = tube_rack['C1']
+    lysis_buffer = tube_rack['A1']
+    neutralization_buffer = tube_rack['B1']
+    PB = tube_rack['A2']
+    magbeads = small_tube_rack['A1']
+    PE = tube_rack['B2']
+    ethanol = tube_rack['C2']
 
     # Define waste location
     waste = reagent_reservoir['A12']
 
     # Define elution buffer location
-    elution_buffer = tube_rack['B2']
+    elution_buffer = tube_rack['A3']
 
     # Perform miniprep protocol
 
@@ -62,7 +69,8 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         # Transfer lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(lysis_buffer_amount, lysis_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(300, lysis_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(150, lysis_buffer.top(-37), sample, new_tip='never')
         p300.mix(5, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -83,7 +91,8 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(300, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(150, neutralization_buffer.top(-37), sample, new_tip='never')
         p300.mix(6, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -118,7 +127,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Engage Magnetic Module Gen 2 to bind DNA
     mag_module.engage(height_from_base=5)
-    protocol.delay(seconds=30)
+    protocol.delay(seconds=40)
 
     #transfer supernatant to waste
     for sample in mag_samples:
@@ -128,57 +137,71 @@ def run(protocol: protocol_api.ProtocolContext):
         p300.transfer(300, sample.top(-depth), waste, new_tip='never')
         p300.transfer(300, sample.top(-depth), waste, new_tip='never')
         p300.transfer(300, sample.top(-depth), waste, new_tip='never')
+        p300.transfer(50, sample.top(-depth), waste, new_tip='never')
         p300.drop_tip()
     
-    #now we need to wash the beads with ethanol twice, and then let it dry
+    #now we need to wash the beads with twice, and then let it dry
 
     # for sample in mag_samples: 
     # Previous line is commented out for the purpose of testing which way of washing works better. uncomment for final implementation
-    # Wash with 70% ethanol twice
-    for _ in range(2): #CHECK THIS LINE OF CODE
-        p300.pick_up_tip()
-        p300.transfer(200, ethanol.top(-34), mag_samples[0], mix_after=(3, 200), new_tip='never')
-        protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
-        p300.transfer(200,mag_samples[0].top(-depth),waste, new_tip='never')
-        p300.blow_out(waste) #Does not work indented (is this most efficient)
-        p300.drop_tip()
-
-    # Remove excess ethanol
-    p20.pick_up_tip()
-    p20.transfer(20,mag_samples[0].top(-depth),waste, new_tip='never')
-    p20.drop_tip()
     
-    # The following blocks until air drying are duplicated and can be deleted after tests
-    for _ in range(2): #CHECK THIS LINE OF CODE
+    # The following blocks until air drying are duplicated and the top performing one should be kept after tests
+    # Wash with PB then PE
+    for sample in Two_wash:
         p300.pick_up_tip()
-        p300.transfer(200, PE.top(-34), mag_samples[1], mix_after=(3, 200), new_tip='never')
+        p300.transfer(300, PB.top(-34), sample, mix_after=(3, 200), new_tip='never')
         protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
-        p300.transfer(200,mag_samples[1].top(-depth),waste, new_tip='never')
-        p300.blow_out(waste) #Does not work indented (is this most efficient)
+        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
         p300.drop_tip()
+        p300.pick_up_tip()
+        p300.transfer(300, PE.top(-34), sample, mix_after=(3, 200), new_tip='never')
+        protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+        p300.drop_tip()
+        # Remove excess
+        p20.pick_up_tip()
+        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
+        p20.drop_tip()
 
-    # Remove excess ethanol
-    p20.pick_up_tip()
-    p20.transfer(20,mag_samples[1].top(-depth),waste, new_tip='never')
-    p20.drop_tip()
+    # Wash with PB twice
+    for sample in PB_wash:
+        for _ in range(2): #CHECK THIS LINE OF CODE
+            p300.pick_up_tip()
+            p300.transfer(300, PB.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+            p300.drop_tip()
+        # Remove excess
+        p20.pick_up_tip()
+        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
+        p20.drop_tip()
 
-    p300.pick_up_tip()
-    p300.transfer(200, ethanol.top(-34), mag_samples[2], mix_after=(3, 200), new_tip='never')
-    protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
-    p300.transfer(200,mag_samples[2].top(-depth),waste, new_tip='never')
-    p300.blow_out(waste) #Does not work indented (is this most efficient)
-    p300.drop_tip()
+    # Wash with PE twice
+    for sample in PE_wash:
+        for _ in range(2): #CHECK THIS LINE OF CODE
+            p300.pick_up_tip()
+            p300.transfer(300, PE.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+            p300.drop_tip()
+        # Remove excess
+        p20.pick_up_tip()
+        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
+        p20.drop_tip()
 
-    p300.pick_up_tip()
-    p300.transfer(200, PE.top(-34), mag_samples[2], mix_after=(3, 200), new_tip='never')
-    protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
-    p300.transfer(200,mag_samples[2].top(-depth),waste, new_tip='never')
-    p300.blow_out(waste) #Does not work indented (is this most efficient)
-    p300.drop_tip()
+    # Wash with X% ethanol twice
+    for sample in Eth_wash:
+        for _ in range(2): #CHECK THIS LINE OF CODE
+            p300.pick_up_tip()
+            p300.transfer(300, ethanol.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+            p300.drop_tip()
+        # Remove excess ethanol
+        p20.pick_up_tip()
+        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
+        p20.drop_tip()
 
-    p20.pick_up_tip()
-    p20.transfer(20,mag_samples[2].top(-depth),waste, new_tip='never')
-    p20.drop_tip()
 
     # Air dry for 6 minutes
     protocol.delay(minutes=6)
@@ -189,7 +212,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Transfer elution buffer to the sample
     for sample in mag_samples:
         p300.pick_up_tip()
-        p300.transfer(20, elution_buffer.top(-34), sample, mix_after=(5, 10), new_tip='never')
+        p300.transfer(30, elution_buffer.top(-34), sample, mix_after=(5, 10), new_tip='never')
         p300.blow_out(sample.top())
         p300.drop_tip()
 
