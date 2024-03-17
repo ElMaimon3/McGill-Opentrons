@@ -40,10 +40,10 @@ def run(protocol: protocol_api.ProtocolContext):
     conc_samples = plate_96.wells('E1','E2','E3','E4','F1','F2','F3','F4')
     mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
     elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
+    num_samples = len(initial_samples)
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
         raise ValueError("The amount of samples in each plate are not the same!")
-    else:
-        num_samples = len(initial_samples)
+
     
     # Define how to wash samples (can be removed for final implementation)
     Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
@@ -244,9 +244,9 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.delay(minutes=1)
 
     # Transfer eluted DNA to a new well
-    for sample, elute_sample in mag_samples, elute_samples:
+    for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(30, sample.top(-depth), elute_sample, new_tip='never')
+        p300.transfer(30, mag_samples[i].top(-depth), elute_samples[i], new_tip='never')
         p300.drop_tip()
 
     # Disengage Magnetic Module Gen 2
