@@ -36,6 +36,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations on the 96-well plates
     initial_samples = plate_96.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')  # Adjust the slice to match your sample locations
+    regular_samples = plate_96.wells('D1','D2','D3')
+    conc_samples = plate_96.wells('E1','E2','E3','E4','F1','F2','F3','F4')
     mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
     elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
@@ -56,6 +58,8 @@ def run(protocol: protocol_api.ProtocolContext):
     magbeads = small_tube_rack['A1']
     PE = tube_rack['B2']
     ethanol = tube_rack['C2']
+    P = small_tube_rack['A3']
+    N = small_tube_rack['A4']
 
     # Define waste location
     waste = reagent_reservoir['A12']
@@ -66,7 +70,14 @@ def run(protocol: protocol_api.ProtocolContext):
     # Perform miniprep protocol
 
     #add lysis buffer to samples
-    for sample in initial_samples:
+    for sample in regular_samples:
+        p300.pick_up_tip()
+        p300.transfer(250, P.top(-37), sample, new_tip='never')
+        p300.mix(5, 300, sample)
+        p300.blow_out(sample)
+        p300.drop_tip()
+
+    for sample in conc_samples:
         # Transfer lysis buffer to the sample
         p300.pick_up_tip()
         p300.transfer(300, lysis_buffer.top(-37), sample, new_tip='never')
@@ -82,13 +93,20 @@ def run(protocol: protocol_api.ProtocolContext):
             time_offset = 60*num_steps
         else:        
             time_offset = 60*(num_steps+1)
-    else:
-        time_offset = 60*num_samples 
+    #else:
+    time_offset = 60*num_samples 
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
     #transfer neutralization buffer to the samples
-    for sample in initial_samples:
+    for sample in regular_samples:
+        p300.pick_up_tip()
+        p300.transfer(250, N.top(-37), sample, new_tip='never')
+        p300.mix(5, 300, sample)
+        p300.blow_out(sample)
+        p300.drop_tip()
+
+    for sample in conc_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
         p300.transfer(300, neutralization_buffer.top(-37), sample, new_tip='never')
