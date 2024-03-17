@@ -7,7 +7,8 @@ from opentrons import protocol_api
 metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2)',
     'author': 'Your Name',
-    'description': 'Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 650uL of culture, 250uL of lysis buffer, 300uL of neutralization buffer, 80uL of magbeads, 400uL of wash per sample',
+    'description': '''Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires XuL of culture, XuL of concentrated lysis buffer, 
+    XuL of concentrated neutralization buffer, XuL of magbeads, XuL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
     'apiLevel': '2.15'
 }
 
@@ -15,6 +16,9 @@ metadata = {
 def run(protocol: protocol_api.ProtocolContext):
     depth = 39#depth to take supernatant from plate
     magbead_incubation_time  = 10 # Total, minutes
+    sample_volume = 600
+    lysis_buffer_amount = 300
+    neutralization_buffer_amount = 300
 
     # Load labware
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
@@ -58,7 +62,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         # Transfer lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(250, lysis_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(lysis_buffer_amount, lysis_buffer.top(-37), sample, new_tip='never')
         p300.mix(5, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -66,7 +70,10 @@ def run(protocol: protocol_api.ProtocolContext):
     # Calculate time offset x
     if num_samples>8:
         num_steps = num_samples//8
-        time_offset = 100*num_steps
+        if num_samples%8==0:
+            time_offset = 100*num_steps
+        else:        
+            time_offset = 100*(num_steps+1)
     else:
         time_offset = 100*num_samples 
     if time_offset<300:
@@ -76,7 +83,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in initial_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(300, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-37), sample, new_tip='never')
         p300.mix(6, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -86,7 +93,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.mix(3,50,magbeads.top(-37))
-        p300.transfer(80, magbeads.top(-37), sample, new_tip='never')
+        p300.transfer(50, magbeads.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
     p300.drop_tip()
     
