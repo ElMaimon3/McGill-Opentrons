@@ -167,12 +167,12 @@ def run(protocol: protocol_api.ProtocolContext):
     # Wash with PB then PE
     for sample in Two_wash:
         p300.pick_up_tip()
-        p300.transfer(300, PB.top(-34), sample, mix_after=(3, 200), new_tip='never')
+        p300.transfer(300, PB.top(-45), sample, mix_after=(3, 200), new_tip='never')
         protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
         p300.transfer(300,sample.top(-depth),waste, new_tip='never')
         p300.drop_tip()
         p300.pick_up_tip()
-        p300.transfer(300, PE.top(-34), sample, mix_after=(3, 200), new_tip='never')
+        p300.transfer(300, PE.top(-45), sample, mix_after=(3, 200), new_tip='never')
         protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
         p300.transfer(300,sample.top(-depth),waste, new_tip='never')
         p300.drop_tip()
@@ -185,7 +185,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in PB_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, PB.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            p300.transfer(300, PB.top(-45), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
@@ -198,7 +198,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in PE_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, PE.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            p300.transfer(300, PE.top(-45), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
@@ -211,7 +211,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in Eth_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, ethanol.top(-34), sample, mix_after=(3, 200), new_tip='never')
+            p300.transfer(300, ethanol.top(-45), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
