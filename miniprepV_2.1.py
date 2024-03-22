@@ -19,6 +19,7 @@ def run(protocol: protocol_api.ProtocolContext):
     sample_volume = 900
     lysis_buffer_amount = 450
     neutralization_buffer_amount = 450
+    mag_height = 2 # mm from labware bottom
 
     # Load labware
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
@@ -136,7 +137,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Incubate with magbeads
     for i in range(magbead_incubation_time):
-        protocol.delay(seconds=40)
+        protocol.delay(seconds=30)
         for sample in mag_samples:
             p300.pick_up_tip()
             p300.mix(1,300,sample)
@@ -145,7 +146,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Engage Magnetic Module Gen 2 to bind DNA
     mag_module.engage(height_from_base=5)
-    protocol.delay(seconds=40)
+    protocol.delay(seconds=60)
 
     #transfer supernatant to waste
     for sample in mag_samples:
