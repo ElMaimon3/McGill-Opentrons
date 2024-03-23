@@ -2,7 +2,7 @@
 from opentrons import protocol_api
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2)',
+    'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2, Single Channel)',
     'author': 'Your Name',
     'description': '''Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires XuL of culture, XuL of concentrated lysis buffer, 
     XuL of concentrated neutralization buffer, XuL of magbeads, XuL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
