@@ -16,10 +16,12 @@ metadata = {
 def run(protocol: protocol_api.ProtocolContext):
 
     # Define available reagents (mL):
-    available_lysis = 15
-    available_neutralization = 15
-    available_binding = 15
-    available_wash = 15
+    available_lysis = 15.0
+    available_neutralization = 15.0
+    available_binding = 15.0
+    available_PB = 15.0
+    available_PE = 15.0
+    available_ethanol = 15.0
 
     
     # Define sample locations on the 96-well plates
@@ -88,9 +90,11 @@ def run(protocol: protocol_api.ProtocolContext):
         # Transfer lysis buffer to the sample
         p300.pick_up_tip()
         for i in range(lysis_buffer_amount//300):
-            p300.transfer(300, lysis_buffer.top(-37), sample, new_tip='never')
-            p300.mix(1, 300, sample)
-        p300.transfer(lysis_buffer_amount%300,lysis_buffer.top(-37), sample, new_tip='never')
+            p300.transfer(300, lysis_buffer.top(-vol_to_height(available_lysis)), sample, new_tip='never')
+            available_lysis -= 0.3
+            p300.mix(1, 300, sample.top(-depth))
+        p300.transfer(lysis_buffer_amount%300,lysis_buffer.top(-vol_to_height(lysis_buffer_amount)), sample, new_tip='never')
+        available_lysis -= (lysis_buffer_amount%300)/1000
         p300.blow_out(sample)
         p300.drop_tip()
     sample_volume += lysis_buffer_amount
@@ -118,7 +122,8 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in conc_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-vol_to_height(available_neutralization)), sample, new_tip='never')
+        available_neutralization -= neutralization_buffer_amount
         p300.mix(2, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -140,8 +145,8 @@ def run(protocol: protocol_api.ProtocolContext):
     for i in range(num_samples):
         p300.pick_up_tip()
         for j in range(sample_volume//300):
-            p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), new_tip='never')
-        p300.transfer(sample_volume%300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(2, 300), new_tip='never')
+            p300.transfer(300, initial_samples[i].top(-38), mag_samples[i], new_tip='never')
+        p300.transfer(sample_volume%300, initial_samples[i].top(-38), mag_samples[i], mix_after=(2, 300), new_tip='never')
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
     sample_volume += 40
@@ -150,8 +155,10 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.pick_up_tip()
         for i in range(binding_buffer_amount//300):
-            p300.transfer(300,binding_buffer,sample, new_tip='never')
-        p300.transfer(binding_buffer_amount%300,binding_buffer,sample.top(-depth), new_tip='never',mix_after=(3, 300))
+            p300.transfer(300,binding_buffer.top(-vol_to_height(available_binding)),sample, new_tip='never')
+            available_binding -= 0.3
+        p300.transfer(binding_buffer_amount%300,binding_buffer.top(-vol_to_height(available_binding)),sample, new_tip='never',mix_after=(3, 300))
+        available_binding -= (binding_buffer_amount%300)/1000
         p300.drop_tip()
     sample_volume += binding_buffer_amount
 
@@ -160,13 +167,13 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.delay(seconds=30)
         for sample in mag_samples:
             p300.pick_up_tip()
-            p300.mix(1,300,sample)
+            p300.mix(1,300,sample.top(-20))
             p300.drop_tip()
 
 
     # Engage Magnetic Module Gen 2 to bind DNA
     mag_module.engage(height_from_base=5)
-    protocol.delay(seconds=60)
+    protocol.delay(seconds=90)
 
     #transfer supernatant to waste
     for sample in mag_samples:
@@ -186,13 +193,15 @@ def run(protocol: protocol_api.ProtocolContext):
     # Wash with PB then PE
     for sample in Two_wash:
         p300.pick_up_tip()
-        p300.transfer(300, PB.top(-45), sample, mix_after=(3, 200), new_tip='never')
-        protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+        p300.transfer(300, PB.top(-vol_to_height(available_PB)), sample, mix_after=(3, 200), new_tip='never')
+        available_PB -= 0.3
+        protocol.delay(seconds=15) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
         p300.transfer(300,sample.top(-depth),waste, new_tip='never')
         p300.drop_tip()
         p300.pick_up_tip()
-        p300.transfer(300, PE.top(-45), sample, mix_after=(3, 200), new_tip='never')
-        protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+        p300.transfer(300, PE.top(-vol_to_height(available_PE)), sample, mix_after=(3, 200), new_tip='never')
+        available_PE -= 0.3
+        protocol.delay(seconds=15) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
         p300.transfer(300,sample.top(-depth),waste, new_tip='never')
         p300.drop_tip()
         # Remove excess
@@ -204,8 +213,9 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in PB_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, PB.top(-45), sample, mix_after=(3, 200), new_tip='never')
-            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300, PB.top(-vol_to_height(available_PB)), sample, mix_after=(3, 200), new_tip='never')
+            available_PB -= 0.3
+            protocol.delay(seconds=15) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
         # Remove excess
@@ -217,8 +227,9 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in PE_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, PE.top(-45), sample, mix_after=(3, 200), new_tip='never')
-            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300, PE.top(-vol_to_height(available_PE)), sample, mix_after=(3, 200), new_tip='never')
+            available_PE -= 0.3
+            protocol.delay(seconds=15) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
         # Remove excess
@@ -230,8 +241,9 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in Eth_wash:
         for _ in range(2): #CHECK THIS LINE OF CODE
             p300.pick_up_tip()
-            p300.transfer(300, ethanol.top(-45), sample, mix_after=(3, 200), new_tip='never')
-            protocol.delay(minutes=1) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
+            p300.transfer(300, ethanol.top(-vol_to_height(available_ethanol)), sample, mix_after=(3, 200), new_tip='never')
+            available_ethanol -= 0.3
+            protocol.delay(seconds=15) ##CHECK THESE TWO LINES OF CODE FOR FUNCTIONALITY
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
         # Remove excess ethanol
@@ -272,4 +284,6 @@ def run(protocol: protocol_api.ProtocolContext):
     mag_module.disengage()
 
 def vol_to_height(vol):
-    pass
+    if vol < 2:
+        raise ValueError('One of the buffers or washes is too low! Please add more')
+    return round(-7.39231*vol + 111.885)
