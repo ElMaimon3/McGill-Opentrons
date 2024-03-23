@@ -15,11 +15,11 @@ metadata = {
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
     depth = 39#depth to take supernatant from plate
-    magbead_incubation_time  = 10 # Total, minutes
-    sample_volume = 900
-    lysis_buffer_amount = 450
-    neutralization_buffer_amount = 450
-    mag_height = 2 # mm from labware bottom
+    magbead_incubation_time  = 5 # Total, minutes
+    sample_volume = 740
+    lysis_buffer_amount = 365
+    neutralization_buffer_amount = 185
+    binding_buffer_amount = 665
 
     # Load labware
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
@@ -55,6 +55,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Define reagent locations on the tube rack
     lysis_buffer = tube_rack['A1']
     neutralization_buffer = tube_rack['B1']
+    binding_buffer = tube_rack['C1']
     PB = tube_rack['A2']
     magbeads = small_tube_rack['A1']
     PE = tube_rack['B2']
@@ -74,18 +75,20 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in regular_samples:
         p300.pick_up_tip()
         p300.transfer(250, P.top(-37), sample, new_tip='never')
-        p300.mix(5, 300, sample)
+        p300.mix(1, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
 
     for sample in conc_samples:
         # Transfer lysis buffer to the sample
         p300.pick_up_tip()
-        p300.transfer(300, lysis_buffer.top(-37), sample, new_tip='never')
-        p300.transfer(150, lysis_buffer.top(-37), sample, new_tip='never')
-        p300.mix(5, 300, sample)
+        for i in range(lysis_buffer_amount//300):
+            p300.transfer(300, lysis_buffer.top(-37), sample, new_tip='never')
+            p300.mix(1, 300, sample)
+        p300.transfer(lysis_buffer_amount%300,lysis_buffer.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
+    sample_volume += lysis_buffer_amount
 
     # Calculate time offset x
     if num_samples>8:
@@ -110,30 +113,42 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in conc_samples:
         #transfer neutralization buffer to the samples
         p300.pick_up_tip()
-        p300.transfer(300, neutralization_buffer.top(-37), sample, new_tip='never')
-        p300.transfer(150, neutralization_buffer.top(-37), sample, new_tip='never')
-        p300.mix(6, 300, sample)
+        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-37), sample, new_tip='never')
+        p300.mix(2, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
-        
+    sample_volume += neutralization_buffer_amount
+
+    # Incubate 10 minutes
+    protocol.delay(minutes=10)
+
     #now we have to add magnetic beads to the plate on the mag module
     p300.pick_up_tip()
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.mix(3,50,magbeads.top(-37))
-        p300.transfer(50, magbeads.top(-37), sample, new_tip='never')
+        p300.transfer(40, magbeads.top(-37), sample, new_tip='never')
         p300.blow_out(sample)
     p300.drop_tip()
     
     #take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
         p300.pick_up_tip()
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place    
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(1, 300), new_tip='never') ##check that it transfers to the right place    
-        p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(5, 300), new_tip='never') ##check that it transfers to the right place
+        for j in range(sample_volume//300):
+            p300.transfer(300, initial_samples[i].top(-38), mag_samples[i].top(-depth), new_tip='never')
+        p300.transfer(sample_volume%300, initial_samples[i].top(-38), mag_samples[i].top(-depth), mix_after=(2, 300), new_tip='never')
         p300.blow_out(mag_samples[i])
         p300.drop_tip()
+    sample_volume += 40
+
+    # Add binding buffer
+    for sample in mag_samples:
+        p300.pick_up_tip()
+        for i in range(binding_buffer_amount//300):
+            p300.transfer(300,binding_buffer,sample, new_tip='never')
+        p300.transfer(binding_buffer_amount%300,binding_buffer,sample.top(-depth), new_tip='never',mix_after=(3, 300))
+        p300.drop_tip()
+    sample_volume += binding_buffer_amount
 
     # Incubate with magbeads
     for i in range(magbead_incubation_time):
@@ -152,11 +167,9 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.flow_rate.aspirate=50
         p300.pick_up_tip()
-        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
-        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
-        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
-        p300.transfer(300, sample.top(-depth), waste, new_tip='never')
-        p300.transfer(50, sample.top(-depth), waste, new_tip='never')
+        for i in range(sample_volume//300):
+            p300.transfer(300, sample.top(-depth), waste, new_tip='never')
+        p300.transfer(sample_volume%300, sample.top(-depth), waste, new_tip='never')
         p300.drop_tip()
     
     #now we need to wash the beads with twice, and then let it dry
