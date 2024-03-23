@@ -14,12 +14,34 @@ metadata = {
 
 # Define the protocol
 def run(protocol: protocol_api.ProtocolContext):
+
+    # Define available reagents (mL):
+    available_lysis = 15
+    available_neutralization = 15
+    available_binding = 15
+    available_wash = 15
+
+    
+    # Define sample locations on the 96-well plates
+    initial_samples = plate_96.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')  # Adjust the slice to match your sample locations
+    regular_samples = plate_96.wells('D1','D2','D3')
+    conc_samples = plate_96.wells('E1','E2','E3','E4','F1','F2','F3','F4')
+    mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
+    elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
+
+    # Define how to wash samples (can be removed for final implementation)
+    Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
+    PB_wash = mag_plate.wells('E2','F2')
+    PE_wash = mag_plate.wells('E3','F3')
+    Eth_wash = mag_plate.wells('E4','F4')
+
+    # Parameters that might need to be tweaked
     depth = 39#depth to take supernatant from plate
     magbead_incubation_time  = 5 # Total, minutes
-    sample_volume = 740
-    lysis_buffer_amount = 365
+    sample_volume = 945
+    lysis_buffer_amount = 472
     neutralization_buffer_amount = 185
-    binding_buffer_amount = 665
+    binding_buffer_amount = 240
 
     # Load labware
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
@@ -34,25 +56,12 @@ def run(protocol: protocol_api.ProtocolContext):
     p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
     p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
 
-
-    # Define sample locations on the 96-well plates
-    initial_samples = plate_96.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')  # Adjust the slice to match your sample locations
-    regular_samples = plate_96.wells('D1','D2','D3')
-    conc_samples = plate_96.wells('E1','E2','E3','E4','F1','F2','F3','F4')
-    mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
-    elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
     num_samples = len(initial_samples)
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
         raise ValueError("The amount of samples in each plate are not the same!")
 
-    
-    # Define how to wash samples (can be removed for final implementation)
-    Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
-    PB_wash = mag_plate.wells('E2','F2')
-    PE_wash = mag_plate.wells('E3','F3')
-    Eth_wash = mag_plate.wells('E4','F4')
 
-    # Define reagent locations on the tube rack
+    # Define reagent locations
     lysis_buffer = tube_rack['A1']
     neutralization_buffer = tube_rack['B1']
     binding_buffer = tube_rack['C1']
@@ -62,11 +71,7 @@ def run(protocol: protocol_api.ProtocolContext):
     ethanol = tube_rack['C2']
     P = small_tube_rack['A3']
     N = small_tube_rack['A4']
-
-    # Define waste location
     waste = reagent_reservoir['A12']
-
-    # Define elution buffer location
     elution_buffer = small_tube_rack['A5']
 
     # Perform miniprep protocol
@@ -265,3 +270,6 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Disengage Magnetic Module Gen 2
     mag_module.disengage()
+
+def vol_to_height(vol):
+    pass
