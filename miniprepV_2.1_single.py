@@ -4,8 +4,8 @@ from opentrons import protocol_api
 metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2, Single Channel)',
     'author': 'Your Name',
-    'description': '''Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires XuL of culture, XuL of concentrated lysis buffer, 
-    XuL of concentrated neutralization buffer, XuL of magbeads, XuL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
+    'description': '''Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 940uL of culture, 500uL of concentrated lysis buffer, 
+    250uL of concentrated neutralization buffer, 300uL of binding buffer, 40uL of magbeads, 600uL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
     'apiLevel': '2.15'
 }
 
@@ -225,7 +225,7 @@ def run(protocol: protocol_api.ProtocolContext):
         p20.transfer(20,sample.top(-depth),waste, new_tip='never')
         p20.drop_tip()
 
-    # Wash with X% ethanol twice
+    # Wash with 90% ethanol twice
     for sample in Eth_wash:
         for _ in range(2):
             p300.pick_up_tip()
