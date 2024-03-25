@@ -274,4 +274,4 @@ def run(protocol: protocol_api.ProtocolContext):
 def vol_to_height(vol):
     if vol < 2:
         raise ValueError('One of the buffers or washes is too low! Please add more')
-    return round(-7.39231*vol + 111.885)
+    return round(-7.39231*vol + 112.885)
