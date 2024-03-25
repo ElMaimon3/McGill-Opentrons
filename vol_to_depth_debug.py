@@ -19,9 +19,6 @@ def run(protocol: protocol_api.ProtocolContext):
     take_from = tube_rack['C5']
     put_in = tube_rack['B5']
     
-    # Load labware
-    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
-    
     # Load pipettes
     p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
     p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
