@@ -11,6 +11,14 @@ metadata = {
 
 # Protocol function
 def run(protocol: protocol_api.ProtocolContext):
+    # Load labware
+    small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
+    plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
+    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
+    reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
+    mag_module = protocol.load_module('magnetic module gen2', '4')
+    mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
+    elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
     # SETTINGS MUST BE ADJUSTED FOR EACH RUN
     # Define available reagents (mL):
     available_lysis = 15.0
@@ -50,15 +58,6 @@ def run(protocol: protocol_api.ProtocolContext):
     lysis_buffer_amount = 470
     neutralization_buffer_amount = 239
     binding_buffer_amount = 301
-
-    # Load labware
-    small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap','9')
-    plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
-    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
-    reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
-    mag_module = protocol.load_module('magnetic module gen2', '4')
-    mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
-    elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
 
     # Load pipettes
     p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])

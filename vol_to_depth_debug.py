@@ -9,6 +9,8 @@ metadata = {
 
 # Protocol function
 def run(protocol: protocol_api.ProtocolContext):
+     # Load labware
+    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
     # SETTINGS MUST BE ADJUSTED FOR EACH RUN
     # Define available reagents (mL):
     available_lysis = 15.0
