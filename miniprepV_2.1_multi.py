@@ -27,22 +27,23 @@ def run(protocol: protocol_api.ProtocolContext):
     available_PB = 15.0
     available_PE = 15.0
     available_ethanol = 15.0
-    # Define sample locations on each of the 96-well plates (eg. 'A1','A2'):
-    initial_samples = plate_96.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
-    mag_samples = mag_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
-    elute_samples = elute_plate.wells('D1','D2','D3','E1','E2','E3','E4','F1','F2','F3','F4')
+    # Define sample locations on each of the 96-well plates. This represents columns (eg. 'A1' is the first,'A2' is the second):
+    # First multi channel run notes: one row is non resuspended, the other is, can remove tips from tiprack to preserve tips and reagents for unused rows
+    initial_samples = plate_96.wells('A5','A6')
+    mag_samples = mag_plate.wells('A5','A6')
+    elute_samples = elute_plate.wells('A5','A6')
     # Define reagent locations
-    lysis_buffer = tube_rack['A1']
-    neutralization_buffer = tube_rack['B1']
-    binding_buffer = tube_rack['C1']
-    PB = tube_rack['A2']
+    lysis_buffer = reagent_reservoir['A1']
+    neutralization_buffer = reagent_reservoir['A2']
+    binding_buffer = reagent_reservoir['A3']
+    PB = reagent_reservoir['A4']
     magbeads = small_tube_rack['A1']
-    PE = tube_rack['B2']
-    ethanol = tube_rack['C2']
+    PE = reagent_reservoir['A5']
+    ethanol = reagent_reservoir['A6']
     P = small_tube_rack['A3']
     N = small_tube_rack['A4']
     waste = reagent_reservoir['A12']
-    elution_buffer = small_tube_rack['A5']
+    elution_buffer = reagent_reservoir['A7']
     # DEBUG SETTINGS
     # Define samples with special properties:
     regular_samples = plate_96.wells('D1','D2','D3')
@@ -61,8 +62,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Load pipettes
-    p300 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
-    p20 = protocol.load_instrument('p20_single_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
+    p300 = protocol.load_instrument('p300_multi_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
+    p20 = protocol.load_instrument('p20_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
 
     num_samples = len(initial_samples)
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
