@@ -124,10 +124,8 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in mag_samples:
         p300.pick_up_tip()
         for i in range(binding_buffer_amount//300):
-            p300.transfer(300,binding_buffer.top(-vol_to_height(available_binding)),sample, new_tip='never')
-            available_binding -= 0.3
-        p300.transfer(binding_buffer_amount%300,binding_buffer.top(-vol_to_height(available_binding)),sample, new_tip='never',mix_after=(3, 300))
-        available_binding -= (binding_buffer_amount%300)/1000
+            p300.transfer(300,binding_buffer.top(-depth),sample, new_tip='never')
+        p300.transfer(binding_buffer_amount%300,binding_buffer.top(-depth),sample, new_tip='never',mix_after=(3, 300))
         p300.drop_tip()
     sample_volume += binding_buffer_amount
 
