@@ -46,13 +46,13 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = reagent_reservoir['A7']
     # DEBUG SETTINGS
     # Define samples with special properties:
-    regular_samples = plate_96.wells('D1','D2','D3')
-    conc_samples = plate_96.wells('E1','E2','E3','E4','F1','F2','F3','F4')
+    regular_samples = plate_96.wells('A5')
+    conc_samples = plate_96.wells('A6')
     # Define wash settings:
-    Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
-    PB_wash = mag_plate.wells('E2','F2')
-    PE_wash = mag_plate.wells('E3','F3')
-    Eth_wash = mag_plate.wells('E4','F4')
+    # Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
+    # PB_wash = mag_plate.wells('E2','F2')
+    # PE_wash = mag_plate.wells('E3','F3')
+    Eth_wash = mag_plate.wells('A5','A6')
     depth = 39 # Depth to take supernatant from deep plate
     magbead_incubation_time  = 5 # Total, minutes
     sample_volume = 940
@@ -72,50 +72,27 @@ def run(protocol: protocol_api.ProtocolContext):
     # Perform miniprep protocol
 
     # Add lysis buffer to samples
-    for sample in regular_samples:
-        p300.pick_up_tip()
-        p300.transfer(250, P.top(-37), sample, new_tip='never')
-        p300.mix(1, 300, sample)
-        p300.blow_out(sample)
-        p300.drop_tip()
 
     for sample in conc_samples:
         p300.pick_up_tip()
         for i in range(lysis_buffer_amount//300):
-            p300.transfer(300, lysis_buffer.top(-vol_to_height(available_lysis)), sample, new_tip='never')
-            available_lysis -= 0.3
+            p300.transfer(300, lysis_buffer.top(-depth), sample, new_tip='never')
             p300.mix(1, 300, sample.top(-depth))
-        p300.transfer(lysis_buffer_amount%300,lysis_buffer.top(-vol_to_height(lysis_buffer_amount)), sample, new_tip='never')
-        available_lysis -= (lysis_buffer_amount%300)/1000
+        p300.transfer(lysis_buffer_amount%300,lysis_buffer.top(-depth), sample, new_tip='never')
         p300.blow_out(sample)
         p300.drop_tip()
     sample_volume += lysis_buffer_amount
 
     # Offset code might not be ideal, need improvment
     # Calculate time offset x
-    if num_samples>8:
-        num_steps = num_samples//8
-        if num_samples%8==0:
-            time_offset = 60*num_steps
-        else:        
-            time_offset = 60*(num_steps+1)
-    #else:
-    time_offset = 60*num_samples 
+    num_steps = len(regular_samples)
+    time_offset = 60*num_steps
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
-    # Transfer neutralization buffer to the samples
-    for sample in regular_samples:
-        p300.pick_up_tip()
-        p300.transfer(250, N.top(-37), sample, new_tip='never')
-        p300.mix(5, 300, sample)
-        p300.blow_out(sample)
-        p300.drop_tip()
-
     for sample in conc_samples:
         p300.pick_up_tip()
-        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-vol_to_height(available_neutralization)), sample, new_tip='never')
-        available_neutralization -= neutralization_buffer_amount
+        p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-depth), sample, new_tip='never')
         p300.mix(2, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()
@@ -179,59 +156,12 @@ def run(protocol: protocol_api.ProtocolContext):
     # Wash the beads with twice, and then let it dry
     
     # The following blocks until air drying represent different wash conditions. Make sure the appropriate ones are implemented
-    # Wash with PB then PE
-    for sample in Two_wash:
-        p300.pick_up_tip()
-        p300.transfer(300, PB.top(-vol_to_height(available_PB)), sample, mix_after=(3, 200), new_tip='never')
-        available_PB -= 0.3
-        protocol.delay(seconds=15)
-        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
-        p300.drop_tip()
-        p300.pick_up_tip()
-        p300.transfer(300, PE.top(-vol_to_height(available_PE)), sample, mix_after=(3, 200), new_tip='never')
-        available_PE -= 0.3
-        protocol.delay(seconds=15)
-        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
-        p300.drop_tip()
-        # Remove excess
-        p20.pick_up_tip()
-        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
-        p20.drop_tip()
-
-    # Wash with PB twice
-    for sample in PB_wash:
-        for _ in range(2):
-            p300.pick_up_tip()
-            p300.transfer(300, PB.top(-vol_to_height(available_PB)), sample, mix_after=(3, 200), new_tip='never')
-            available_PB -= 0.3
-            protocol.delay(seconds=15)
-            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
-            p300.drop_tip()
-        # Remove excess
-        p20.pick_up_tip()
-        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
-        p20.drop_tip()
-
-    # Wash with PE twice
-    for sample in PE_wash:
-        for _ in range(2):
-            p300.pick_up_tip()
-            p300.transfer(300, PE.top(-vol_to_height(available_PE)), sample, mix_after=(3, 200), new_tip='never')
-            available_PE -= 0.3
-            protocol.delay(seconds=15)
-            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
-            p300.drop_tip()
-        # Remove excess
-        p20.pick_up_tip()
-        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
-        p20.drop_tip()
-
+    
     # Wash with X% ethanol twice
     for sample in Eth_wash:
         for _ in range(2):
             p300.pick_up_tip()
-            p300.transfer(300, ethanol.top(-vol_to_height(available_ethanol)), sample, mix_after=(3, 200), new_tip='never')
-            available_ethanol -= 0.3
+            p300.transfer(300, ethanol.top(-depth), sample, mix_after=(3, 200), new_tip='never')
             protocol.delay(seconds=15)
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
@@ -271,8 +201,3 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Disengage Magnetic Module Gen 2
     mag_module.disengage()
-
-def vol_to_height(vol):
-    if vol < 2:
-        raise ValueError('One of the buffers or washes is too low! Please add more')
-    return round(-7.39231*vol + 112.885)
