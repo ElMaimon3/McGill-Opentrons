@@ -32,6 +32,7 @@ def run(protocol: protocol_api.ProtocolContext):
     initial_samples = plate_96.wells('A5','A6')
     mag_samples = mag_plate.wells('A5','A6')
     elute_samples = elute_plate.wells('A5','A6')
+    mag_samples_s = mag_plate.wells('A5','B5','A6','B6')
     # Define reagent locations
     lysis_buffer = reagent_reservoir['A1']
     neutralization_buffer = reagent_reservoir['A2']
@@ -62,8 +63,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Load pipettes
-    p300 = protocol.load_instrument('p300_multi_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
-    p20 = protocol.load_instrument('p20_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_20ul', '8')])
+    p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
+    p300_1 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '8')])
 
     num_samples = len(initial_samples)
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
@@ -72,7 +73,11 @@ def run(protocol: protocol_api.ProtocolContext):
     # Perform miniprep protocol
 
     # Add lysis buffer to samples
-
+    for sample in regular_samples:
+        p300_1.pick_up_tip()
+        p300_1.transfer(250, P.top(-37), sample, new_tip='never')
+        p300_1.drop_tip()
+    
     for sample in conc_samples:
         p300.pick_up_tip()
         for i in range(lysis_buffer_amount//300):
@@ -90,6 +95,12 @@ def run(protocol: protocol_api.ProtocolContext):
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
+    for sample in regular_samples:
+        p300_1.pick_up_tip()
+        p300_1.transfer(250, N.top(-37), sample, new_tip='never')
+        p300_1.mix(1, 300, sample)
+        p300_1.drop_tip()
+
     for sample in conc_samples:
         p300.pick_up_tip()
         p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-depth), sample, new_tip='never')
@@ -102,13 +113,13 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.delay(minutes=10)
 
     # Add magnetic beads to the plate on the mag module
-    p300.pick_up_tip()
-    for sample in mag_samples:
-        p300.flow_rate.aspirate=50
-        p300.mix(3,50,magbeads.top(-37))
-        p300.transfer(40, magbeads.top(-37), sample, new_tip='never')
-        p300.blow_out(sample)
-    p300.drop_tip()
+    p300_1.pick_up_tip()
+    for sample in mag_samples_s:
+        p300_1.flow_rate.aspirate=50
+        p300_1.mix(3,50,magbeads.top(-37))
+        p300_1.transfer(40, magbeads.top(-37), sample, new_tip='never')
+        p300_1.blow_out(sample)
+    p300_1.drop_tip()
     
     # Take bacterial samples and put them in the magbead plate
     for i in range(num_samples):
@@ -163,10 +174,7 @@ def run(protocol: protocol_api.ProtocolContext):
             protocol.delay(seconds=15)
             p300.transfer(300,sample.top(-depth),waste, new_tip='never')
             p300.drop_tip()
-        # Remove excess ethanol
-        p20.pick_up_tip()
-        p20.transfer(20,sample.top(-depth),waste, new_tip='never')
-        p20.drop_tip()
+
 
 
     # Air dry for 6 minutes
@@ -188,7 +196,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Engage Magnetic Module Gen 2 to bind DNA again
     mag_module.engage(height_from_base=5)
 
-    # Incubate with magbeads for 2 minutes
+    # Incubate with magbeads
     protocol.delay(minutes=1)
 
     # Transfer eluted DNA to a new well
