@@ -29,10 +29,10 @@ def run(protocol: protocol_api.ProtocolContext):
     available_ethanol = 15.0
     # Define sample locations on each of the 96-well plates. This represents columns (eg. 'A1' is the first,'A2' is the second):
     # First multi channel run notes: one row is non resuspended, the other is, can remove tips from tiprack to preserve tips and reagents for unused rows
-    initial_samples = plate_96.wells('A5','A6')
-    mag_samples = mag_plate.wells('A5','A6')
-    elute_samples = elute_plate.wells('A5','A6')
-    mag_samples_s = mag_plate.wells('A5','B5','A6','B6')
+    initial_samples = plate_96.wells('A6','A7')
+    mag_samples = mag_plate.wells('A6','A7')
+    elute_samples = elute_plate.wells('A6','A7')
+    mag_samples_s = mag_plate.wells('A6','B6','A7','B7')
     # Define reagent locations
     lysis_buffer = reagent_reservoir['A1']
     neutralization_buffer = reagent_reservoir['A2']
@@ -47,8 +47,8 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = reagent_reservoir['A7']
     # DEBUG SETTINGS
     # Define samples with special properties:
-    regular_samples = plate_96.wells('A5')
-    conc_samples = plate_96.wells('A6')
+    regular_samples = plate_96.wells('A6')
+    conc_samples = plate_96.wells('A7')
     # Define wash settings:
     # Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
     # PB_wash = mag_plate.wells('E2','F2')
