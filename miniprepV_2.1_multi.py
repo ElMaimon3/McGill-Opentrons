@@ -29,10 +29,10 @@ def run(protocol: protocol_api.ProtocolContext):
     available_ethanol = 15.0
     # Define sample locations on each of the 96-well plates. This represents columns (eg. 'A1' is the first,'A2' is the second):
     # First multi channel run notes: one row is non resuspended, the other is, can remove tips from tiprack to preserve tips and reagents for unused rows
-    initial_samples = plate_96.wells('A6','A7')
-    mag_samples = mag_plate.wells('A6','A7')
-    elute_samples = elute_plate.wells('A6','A7')
-    mag_samples_s = mag_plate.wells('A6','B6','A7','B7')
+    initial_samples = plate_96.wells('A6','A7','A8','A9')
+    mag_samples = mag_plate.wells('A6','A7','A8','A9')
+    elute_samples = elute_plate.wells('A6','A7','A8','A9')
+    mag_samples_s = mag_plate.wells('A6','A7','A8','A9','B6','B7','B8','B9','C6','C7','C8','C9')
     # Define reagent locations
     lysis_buffer = reagent_reservoir['A1']
     neutralization_buffer = reagent_reservoir['A2']
@@ -47,13 +47,13 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = reagent_reservoir['A7']
     # DEBUG SETTINGS
     # Define samples with special properties:
-    regular_samples = plate_96.wells('A6')
-    conc_samples = plate_96.wells('A7')
+    regular_samples = initial_samples
+    conc_samples = initial_samples
     # Define wash settings:
-    # Two_wash = mag_plate.wells('D1','D2','D3','E1','F1')
-    # PB_wash = mag_plate.wells('E2','F2')
-    # PE_wash = mag_plate.wells('E3','F3')
-    Eth_wash = mag_plate.wells('A5','A6')
+    Two_wash = mag_plate.wells('A8')
+    PB_wash = mag_plate.wells('A6')
+    PE_wash = mag_plate.wells('A7')
+    Eth_wash = mag_plate.wells('A9')
     depth = 39 # Depth to take supernatant from deep plate
     magbead_incubation_time  = 5 # Total, minutes
     sample_volume = 940
@@ -165,7 +165,38 @@ def run(protocol: protocol_api.ProtocolContext):
     # Wash the beads with twice, and then let it dry
     
     # The following blocks until air drying represent different wash conditions. Make sure the appropriate ones are implemented
+
+    # Wash with PE twice
+    for sample in PE_wash:
+        for _ in range(2):
+            p300.pick_up_tip()
+            p300.transfer(300, PE.top(-depth), sample, mix_after=(3, 200), new_tip='never')
+            protocol.delay(seconds=15)
+            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+            p300.drop_tip()
     
+    # Wash with PB twice
+    for sample in PB_wash:
+        for _ in range(2):
+            p300.pick_up_tip()
+            p300.transfer(300, PB.top(-depth), sample, mix_after=(3, 200), new_tip='never')
+            protocol.delay(seconds=15)
+            p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+            p300.drop_tip()
+
+    # Wash with PE then PB
+    for sample in Two_wash:
+        p300.pick_up_tip()
+        p300.transfer(300, PE.top(-depth), sample, mix_after=(3, 200), new_tip='never')
+        protocol.delay(seconds=15)
+        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+        p300.drop_tip()
+        p300.pick_up_tip()
+        p300.transfer(300, PB.top(-depth), sample, mix_after=(3, 200), new_tip='never')
+        protocol.delay(seconds=15)
+        p300.transfer(300,sample.top(-depth),waste, new_tip='never')
+        p300.drop_tip()
+        
     # Wash with X% ethanol twice
     for sample in Eth_wash:
         for _ in range(2):
