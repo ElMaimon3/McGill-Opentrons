@@ -16,7 +16,7 @@ def run(protocol: protocol_api.ProtocolContext):
     plate_96 = protocol.load_labware('nest_96_wellplate_2ml_deep', '1')
     tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', '2')
     reagent_reservoir = protocol.load_labware('nest_12_reservoir_15ml', '3')
-    mag_module = protocol.load_module('magnetic module gen2', '4')
+    mag_module = protocol.load_module('magnetic module gen2', '10')
     mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
     # SETTINGS MUST BE ADJUSTED FOR EACH RUN
@@ -63,7 +63,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Load pipettes
-    p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),protocol.load_labware('opentrons_96_tiprack_300ul', '10')])
+    p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '4'),protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '7')])
     p300_1 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '8')])
 
     num_samples = len(initial_samples)
