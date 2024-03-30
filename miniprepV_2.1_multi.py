@@ -90,8 +90,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Offset code might not be ideal, need improvment
     # Calculate time offset x
-    num_steps = len(regular_samples)
-    time_offset = 60*num_steps
+    num_steps = len(initial_samples)-(len(regular_samples)-1)
+    time_offset = 38*num_steps
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
