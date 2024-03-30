@@ -64,7 +64,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Load pipettes
-    p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '4'),protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '7'),protocol.load_labware('opentrons_96_tiprack_300ul', '11')])
+    p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '4'),protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '7'),protocol.load_labware('opentrons_96_tiprack_300ul', '11'),tips1])
     p300_1 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[tips1])
 
     num_samples = len(initial_samples)
