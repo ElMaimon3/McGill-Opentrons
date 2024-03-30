@@ -8,7 +8,7 @@ metadata = {
     XuL of concentrated neutralization buffer, XuL of magbeads, XuL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
     'apiLevel': '2.15'
 }
-# THIS PROTOCOL HAS NOT BEEN IMPLEMENTED YET, IT IS A COPY OF THE SINGLE CHANNEL PROTOCOL
+
 # Protocol function
 def run(protocol: protocol_api.ProtocolContext):
     # Load labware
