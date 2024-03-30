@@ -19,6 +19,7 @@ def run(protocol: protocol_api.ProtocolContext):
     mag_module = protocol.load_module('magnetic module gen2', '10')
     mag_plate = mag_module.load_labware('nest_96_wellplate_2ml_deep')
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', '6')
+    tips1 = protocol.load_labware('opentrons_96_tiprack_300ul', '8')
     # SETTINGS MUST BE ADJUSTED FOR EACH RUN
     # Define available reagents (mL):
     available_lysis = 15.0
@@ -64,7 +65,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load pipettes
     p300 = protocol.load_instrument('p300_multi_gen2', 'right', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '4'),protocol.load_labware('opentrons_96_tiprack_300ul', '5'),protocol.load_labware('opentrons_96_tiprack_300ul', '7'),protocol.load_labware('opentrons_96_tiprack_300ul', '11')])
-    p300_1 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[protocol.load_labware('opentrons_96_tiprack_300ul', '8')])
+    p300_1 = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[tips1])
 
     num_samples = len(initial_samples)
     if len(mag_samples) != len(initial_samples) or len(initial_samples) != len(elute_samples):
