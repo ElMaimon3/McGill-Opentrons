@@ -5,7 +5,7 @@ from opentrons import protocol_api
 metadata = {
     'protocolName': 'PCR',
     'description': '''OT-2 PCR with template DNA pre loaded on the PCR plate.
-    Depending on the use case, primers have to be added to each sample or left in the tube_rack'''
+    Depending on the use case, primers have to be added to each sample or left in the tube rack'''
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
@@ -21,6 +21,7 @@ def run(protocol: protocol_api.ProtocolContext):
     extension_time_seconds = 210
     final_extension_time_seconds = 120
     num_cycles = 30
+    primers_loaded = True # Set to true if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
 
     # labware
     tc_mod = protocol.load_module('thermocyclerModuleV2')
@@ -35,6 +36,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # commands
     tc_mod.open_lid()
     master_mix = tube_rack.wells_by_name()['A1'].top(-34)
+    primers = tube_rack.wells_by_name()['A2'].top(-34)
     destination_wells = [tc_plate.wells_by_name()['A1'],tc_plate.wells_by_name()['B1'],tc_plate.wells_by_name()['C1'],tc_plate.wells_by_name()['D1']]
     
     left_pipette.pick_up_tip()
