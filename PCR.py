@@ -4,8 +4,8 @@ from opentrons import protocol_api
 # metadata
 metadata = {
     'protocolName': 'PCR',
-    'description': '''Opentrons PCR with template DNA pre loaded on the PCR plate.
-    Depending on the use case, primers have to be added to each sample or to master mix (OT-2)'''
+    'description': '''OT-2 PCR with template DNA pre loaded on the PCR plate.
+    Depending on the use case, primers have to be added to each sample or left in the tube_rack'''
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
@@ -13,11 +13,14 @@ def run(protocol: protocol_api.ProtocolContext):
     # pcr parameters
     pcr_volume = 80 # volume in each well, uL
     denaturation_temp = 98
+    initial_denaturation_time_seconds = 15
     denaturation_time_seconds = 10
     annealing_temp = 63
     annealing_time_seconds = 20
     extension_temp = 72
     extension_time_seconds = 210
+    final_extension_time_seconds = 120
+    num_cycles = 30
 
     # labware
     tc_mod = protocol.load_module('thermocyclerModuleV2')
@@ -42,8 +45,7 @@ def run(protocol: protocol_api.ProtocolContext):
     left_pipette.drop_tip()
 
 
-    # thermocycling parameters
-    
+    # thermocycling program definition
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
         {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
@@ -54,9 +56,9 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Running thermocycler...")
     tc_mod.close_lid()
     tc_mod.set_lid_temperature(105)
-    tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= 15, block_max_volume=pcr_volume) # Initial denaturation
-    tc_mod.execute_profile(steps=pcr_program, repetitions=30, block_max_volume=pcr_volume)
-    tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= 120, block_max_volume=pcr_volume) # Final extension
+    tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= initial_denaturation_time_seconds, block_max_volume=pcr_volume) # Initial denaturation
+    tc_mod.execute_profile(steps=pcr_program, repetitions=num_cycles, block_max_volume=pcr_volume)
+    tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= final_extension_time_seconds, block_max_volume=pcr_volume) # Final extension
     tc_mod.set_block_temperature(4)
     tc_mod.deactivate_lid()
     tc_mod.open_lid()
