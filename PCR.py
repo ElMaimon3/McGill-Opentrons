@@ -21,24 +21,25 @@ def run(protocol: protocol_api.ProtocolContext):
     extension_time_seconds = 210
     final_extension_time_seconds = 120
     num_cycles = 30
-    primers_loaded = True # Set to true if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
+    primers_loaded = False # Set to true if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
 
     # labware
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
     tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
+    tiprack2 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
+    destination_wells = tc_plate.wells_by_name('A1','A2','B2') # Adjust the slice to match you sample locations
 
     # pipettes
     left_pipette = protocol.load_instrument(
-        'p300_single_gen2', 'left', tip_racks=[tiprack])
+        'p300_single_gen2', 'left', tip_racks=[tiprack,tiprack2])
 
     # commands
     tc_mod.open_lid()
     master_mix = tube_rack.wells_by_name()['A1'].top(-34)
     primers = tube_rack.wells_by_name()['A2'].top(-34)
-    destination_wells = [tc_plate.wells_by_name()['A1'],tc_plate.wells_by_name()['B1'],tc_plate.wells_by_name()['C1'],tc_plate.wells_by_name()['D1']]
-    
+        
     if not primers_loaded:
         left_pipette.pick_up_tip()
         for well in destination_wells:
