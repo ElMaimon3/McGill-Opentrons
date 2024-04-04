@@ -30,6 +30,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
     tiprack2 = protocol.load_labware('opentrons_96_tiprack_300ul', '2')
     destination_wells = tc_plate.wells_by_name('A1','A2','B2') # Adjust the slice to match you sample locations
+    # If using whole rows or columns, consult Opentrons documentation (I will add native support soon)
 
     # pipettes
     left_pipette = protocol.load_instrument(
@@ -39,7 +40,8 @@ def run(protocol: protocol_api.ProtocolContext):
     tc_mod.open_lid()
     master_mix = tube_rack.wells_by_name()['A1'].top(-34)
     primers = tube_rack.wells_by_name()['A2'].top(-34)
-        
+    
+    # Transfer appropriate reagents to pcr plate
     if not primers_loaded:
         left_pipette.pick_up_tip()
         for well in destination_wells:
