@@ -39,6 +39,14 @@ def run(protocol: protocol_api.ProtocolContext):
     primers = tube_rack.wells_by_name()['A2'].top(-34)
     destination_wells = [tc_plate.wells_by_name()['A1'],tc_plate.wells_by_name()['B1'],tc_plate.wells_by_name()['C1'],tc_plate.wells_by_name()['D1']]
     
+    if not primers_loaded:
+        left_pipette.pick_up_tip()
+        for well in destination_wells:
+            left_pipette.aspirate(10,primers)
+            left_pipette.dispense(10,well)
+        left_pipette.drop_tip()
+
+
     left_pipette.pick_up_tip()
     for well in destination_wells:
         left_pipette.mix(1,10,master_mix)
