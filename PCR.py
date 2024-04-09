@@ -11,7 +11,9 @@ requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
 	
     # pcr parameters
-    pcr_volume = 80 # volume in each well, uL
+    sample_volume = 40 # volume left in each well, uL
+    master_mix_volume = 40 # volume of master mix to add to each sample
+    primer_volume = 10 # only applicable is primers_loaded is set to False
     denaturation_temp = 98
     initial_denaturation_time_seconds = 15
     denaturation_time_seconds = 10
@@ -35,6 +37,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # pipettes
     left_pipette = protocol.load_instrument(
         'p300_single_gen2', 'left', tip_racks=[tiprack,tiprack2])
+    
 
     # commands
     tc_mod.open_lid()
@@ -45,8 +48,8 @@ def run(protocol: protocol_api.ProtocolContext):
     if not primers_loaded:
         left_pipette.pick_up_tip()
         for well in destination_wells:
-            left_pipette.aspirate(10,primers)
-            left_pipette.dispense(10,well)
+            left_pipette.aspirate(primer_volume,primers)
+            left_pipette.dispense(primer_volume,well)
         left_pipette.drop_tip()
 
 
