@@ -10,6 +10,7 @@ The tube rack goes in slot 3 of the deck.
 You may change the sample locations and PCR settings in lines 14-37 of the PCR.py file.
 Sample locations:
 You can define sample locations by columns, rows, and individual wells.
+If you dont't wish to include one of these methods, it can be left as an empy list []
 In cases where more than one of these methods is used, all locations will be accounted for and duplicates will be removed.
 Example: If sample_colimns is set to ['1'] and sample_rows is set to ['A'], the sample locations will be considered as all of column 1 and row A, but well A1 will only be included once.
 Setting descriptions:
