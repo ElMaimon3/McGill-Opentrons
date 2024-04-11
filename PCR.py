@@ -45,13 +45,13 @@ def run(protocol: protocol_api.ProtocolContext):
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
 
+    # Define wells and remove duplicates
     destination_wells = []
     destination_wells.extend([tc_plate.columns_by_name()[col] for col in sample_columns])
     destination_wells.extend([tc_plate.rows_by_name()[row] for row in sample_rows])
     destination_wells.extend([tc_plate.wells_by_name()[well] for well in sample_wells])
     # Initialize an empty dictionary to track occurrences
     occurrences = {}
-
     # Initialize an empty list to store the unique wells
     unique_wells = []
 
@@ -66,7 +66,7 @@ def run(protocol: protocol_api.ProtocolContext):
             occurrences[well_str] = True
         else:
             # If the well is already in the dictionary, it's a duplicate
-            protocol.comment(f"Duplicate location found and removed! {well_str}")
+            protocol.comment(f"Duplicate location found and removed: {well_str}")
 
     # Replace destination_wells with the list of unique wells
     destination_wells = unique_wells
