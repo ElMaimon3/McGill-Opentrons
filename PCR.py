@@ -12,7 +12,7 @@ requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
 def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations by column, row and/or well
-    # Any duplicated locations will raise a warning
+    # Any duplicated locations will be removed and raise a warning
     sample_columns = ['1','2'] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
     sample_wells = ['A3'] # eg. ['A1', 'B1']
@@ -54,11 +54,9 @@ def run(protocol: protocol_api.ProtocolContext):
     occurrences = {}
     # Initialize an empty list to store the unique wells
     unique_wells = []
-
     for well in destination_wells:
         # Convert the well object to a string to use it as a dictionary key
         well_str = well.well_name
-    
         if well_str not in occurrences:
             # If the well is not in the dictionary, add it to unique_wells
             unique_wells.append(well)
@@ -67,16 +65,17 @@ def run(protocol: protocol_api.ProtocolContext):
         else:
             # If the well is already in the dictionary, it's a duplicate
             protocol.comment(f"Duplicate location found and removed: {well_str}")
-
     # Replace destination_wells with the list of unique wells
     destination_wells = unique_wells
     num_samples = len(destination_wells)
+
     # Pipettes
     p300 = protocol.load_instrument(
         'p300_single_gen2', 'left', tip_racks=[tiprack])
     p20 = protocol.load_instrument(
         'p20_single_gen2', 'left', tip_racks=[tiprack2])
     pcr_volume = sample_volume + master_mix_volume + primer_volume
+
     # Commands
     tc_mod.open_lid()
     master_mix = tube_rack.wells_by_name()['A1'].top(-34)
@@ -107,7 +106,6 @@ def run(protocol: protocol_api.ProtocolContext):
                 primer_pipette.dispense(primer_volume,well.top())
         primer_pipette.drop_tip()
 
-
     p300.pick_up_tip()
     for well in destination_wells:
         if mm1 >= master_mix_volume:
@@ -131,15 +129,14 @@ def run(protocol: protocol_api.ProtocolContext):
             p300.dispense(master_mix_volume, well.top())                     
     p300.drop_tip()
 
-
-    # thermocycling program definition
+    # Thermocycling program definition
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
         {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
         {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},   # Extension
     ]
 
-    # run thermocycler
+    # Run thermocycler
     protocol.comment("Running thermocycler...")
     tc_mod.close_lid()
     tc_mod.set_lid_temperature(105)
