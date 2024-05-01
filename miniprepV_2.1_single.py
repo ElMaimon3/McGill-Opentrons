@@ -3,7 +3,7 @@ from opentrons import protocol_api
 
 metadata = {
     'protocolName': 'Pellet-Free Minipreps with Magbeads (OT-2, Single Channel)',
-    'author': 'Your Name',
+    "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with magbeads (OT-2). Requires 940uL of culture, 500uL of concentrated lysis buffer, 
     250uL of concentrated neutralization buffer, 300uL of binding buffer, 40uL of magbeads, 600uL of wash per sample. DO NOT FORGET TO TURN ON THE HEPA FAN ON MAX''',
     'apiLevel': '2.15'

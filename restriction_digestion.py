@@ -4,6 +4,7 @@ from opentrons import protocol_api
 # metadata
 metadata = {
     'protocolName': 'Restriction Enzyme based digestion',
+    "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': 'Must load 500ng of each plasmid into the themocycler plates'
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}

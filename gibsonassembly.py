@@ -4,6 +4,7 @@ from opentrons import protocol_api
 # metadata
 metadata = {
     'protocolName': 'Gibson Assembly',
+    "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': 'Opentrons protocol for Gibson Assembly (OT-2)',
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}

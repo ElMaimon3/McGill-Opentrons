@@ -3,7 +3,8 @@ from opentrons import protocol_api
 
 # metadata
 metadata = {
-    'protocolName': 'Plasmid ligation',
+    'protocolName': 'Plasmid ligation (WIP)',
+    "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': 'Meant to start with gel extracts and end with an assembled plamsid',
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
