@@ -4,7 +4,7 @@ metadata = {
     'protocolName': 'Miniprep multi channel debug',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': '''''',
-    'apiLevel': '2.15'
+    'apiLevel': '2.19'
 }
 
 # Protocol function

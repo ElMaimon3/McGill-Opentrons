@@ -7,7 +7,7 @@ metadata = {
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': 'Must load 500ng of each plasmid into the themocycler plates'
 }
-requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
+requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 def run(protocol: protocol_api.ProtocolContext):
      # Load pipettes
     RE1concentration = 100 # U/uL

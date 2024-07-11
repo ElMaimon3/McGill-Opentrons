@@ -8,7 +8,7 @@ metadata = {
     'description': '''OT-2 PCR with template DNA pre loaded on the PCR plate.
     Depending on the use case, primers have to be added to each sample or left in the tube rack'''
 }
-requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
+requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations by column, row and/or well

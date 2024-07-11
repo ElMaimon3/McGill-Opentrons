@@ -7,7 +7,7 @@ metadata = {
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': 'Opentrons protocol for Gibson Assembly (OT-2)',
 }
-requirements = {"robotType": "OT-2", "apiLevel": "2.15"}
+requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 def run(protocol: protocol_api.ProtocolContext):
      # labware
     temp_mod = protocol.load_module('temperature module gen2','5')
