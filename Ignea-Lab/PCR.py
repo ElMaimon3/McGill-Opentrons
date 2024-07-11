@@ -9,6 +9,19 @@ metadata = {
     Depending on the use case, primers have to be added to each sample or left in the tube rack'''
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
+
+# Runtime Parameters (Recommended)
+def add_parameters(parameters: protocol_api.Parameters):
+    parameters.add_int(
+        variable_name = "sample_volume",
+        display_name = "Sample Volume",
+        description = "The volume of template DNA or colony (for colony PCR), in uL",
+        default = 40,
+        minimum = 20,
+        maximum = 100,
+        unit="µL"
+    )
+
 def run(protocol: protocol_api.ProtocolContext):
 
     # Define sample locations by column, row and/or well
@@ -16,8 +29,10 @@ def run(protocol: protocol_api.ProtocolContext):
     sample_columns = ['1','2'] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
     sample_wells = ['A3'] # eg. ['A1', 'B1']
+
+
     # PCR parameters
-    sample_volume = 40 # Volume of sample loaded in each well, uL
+    sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
     master_mix_volume = 40 # Volume of master mix to add to each well, uL
     primer_volume = 10 # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
     denaturation_temp = 98
