@@ -1,7 +1,6 @@
-Opentrons PCR documentation - Ignea lab
+## Opentrons PCR documentation - Ignea lab
 
-Reagents:
-
+# Reagents:
 Calculate how much master mix and primers you need according to the details of your PCR and the number of samples.
 Place your reagents into 1.5mL eppendorf tubes.
 Up to 4 master mix tubes go into slots A1, B1, C1, D1 of the tube rack.
@@ -9,15 +8,18 @@ Up to 2 primer tubes go into slots A2, B2 if the tube rack.
 The 300uL tip rack goes in slot 1 of the deck.
 The 20uL  tip rack goes in slot 2 of the deck.
 The tube rack goes in slot 3 of the deck.
-You may change the sample locations and PCR settings in lines 14-37 of the PCR.py file.
 
-Sample locations:
-You can define sample locations by columns, rows, and individual wells.
+# Running the protocol
+Download the `PCR.py` file
+Open it with your preferred code editor and enter your sample locations inside the `add_locations()` function. You only need to edit lines 16, 17 and 18.
+You can define sample locations by columns, rows, and individual wells on the PCR plate (on each line respectivley).
 If you dont't wish to include one of these methods, it can be left as an empy list []
 In cases where more than one of these methods is used, all locations will be accounted for and duplicates will be removed.
 Example: If sample_columns is set to ['1'] and sample_rows is set to ['A'], the sample locations will be considered as all of column 1 and row A, but well A1 will only be included once.
 
-Setting descriptions:
+Save your protocol and import it in the Opentrons app. Start the setup and adjust the settings as necessary.
+
+# Setting descriptions:
 - `sample_volume`: The volume of template DNA or colony (for colony PCR), in uL
 - `master_mix_volume`: The volume of master mix to add to each sample, in uL
 - `primer_volume`: The volume of primers for each sample, in uL
