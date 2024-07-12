@@ -195,28 +195,31 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define wells and remove duplicates
     destination_wells = []
-    destination_wells.extend([w for w in [tc_plate.columns_by_name()[col] for col in sample_columns]])
-    destination_wells.extend([w for w  in [tc_plate.rows_by_name()[row] for row in sample_rows]])
+    for col in sample_columns:
+       destination_wells.extend(tc_plate.columns_by_name()[col])
+    for row in sample_rows:
+       destination_wells.extend(tc_plate.rows_by_name()[row])
     destination_wells.extend([tc_plate.wells_by_name()[well] for well in sample_wells])
+
     # Initialize an empty dictionary to track occurrences
     occurrences = {}
     # Initialize an empty list to store the unique wells
     unique_wells = []
     for well in destination_wells:
-        # Convert the well object to a string to use it as a dictionary key
-        well_str = well.well_name
-        if well_str not in occurrences:
-            # If the well is not in the dictionary, add it to unique_wells
-            unique_wells.append(well)
-            # And add it to the dictionary
-            occurrences[well_str] = True
-        else:
+       # Convert the well object to a string to use it as a dictionary key
+       well_str = str(well)
+       if well_str not in occurrences:
+           # If the well is not in the dictionary, add it to unique_wells
+           unique_wells.append(well)
+           # And add it to the dictionary
+           occurrences[well_str] = True
+       else:
             # If the well is already in the dictionary, it's a duplicate
             protocol.comment(f"Duplicate location found and removed: {well_str}")
     # Replace destination_wells with the list of unique wells
     destination_wells = unique_wells
     num_samples = len(destination_wells)
-
+    
     # Pipettes
     p300 = protocol.load_instrument(
         'p300_single_gen2', 'left', tip_racks=[tiprack])
