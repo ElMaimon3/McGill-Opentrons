@@ -195,8 +195,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Define wells and remove duplicates
     destination_wells = []
-    destination_wells.extend([tc_plate.columns_by_name()[col] for col in sample_columns])
-    destination_wells.extend([tc_plate.rows_by_name()[row] for row in sample_rows])
+    destination_wells.extend([w for w in [tc_plate.columns_by_name()[col] for col in sample_columns]])
+    destination_wells.extend([w for w  in [tc_plate.rows_by_name()[row] for row in sample_rows]])
     destination_wells.extend([tc_plate.wells_by_name()[well] for well in sample_wells])
     # Initialize an empty dictionary to track occurrences
     occurrences = {}
