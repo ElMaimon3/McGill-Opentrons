@@ -27,16 +27,16 @@ def add_parameters(parameters: protocol_api.Parameters):
         description = "The volume of template DNA (or colony for colony PCR)",
         default = 40,
         minimum = 20,
-        maximum = 100,
+        maximum = 50,
         unit = "µL"
     )
     parameters.add_int(
         variable_name = "master_volume",
         display_name = "Master Mix Volume",
         description = "The volume of master mix to add to each sample",
-        default = 40,
-        minimum = 20,
-        maximum = 100,
+        default = 20,
+        minimum = 10,
+        maximum = 25,
         unit = "µL"
     )
     parameters.add_bool(
@@ -49,9 +49,9 @@ def add_parameters(parameters: protocol_api.Parameters):
         variable_name = "primer_volume",
         display_name = "Primer Volume",
         description = "The volume of primers for each sample. Either added by robot or pre loaded",
-        default = 40,
-        minimum = 20,
-        maximum = 100,
+        default = 20,
+        minimum = 10,
+        maximum = 25,
         unit = "µL"
     )
     parameters.add_int(
@@ -257,28 +257,33 @@ def run(protocol: protocol_api.ProtocolContext):
                 primer_pipette.dispense(primer_volume,well.top())
         primer_pipette.drop_tip()
 
-    p300.pick_up_tip()
+    if master_mix_volume <20:
+        master_pipette = p20
+    else:
+        master_pipette = p300
+
+    master_pipette.pick_up_tip()
     for well in destination_wells:
         if mm1 >= master_mix_volume:
-            p300.mix(1,10,master_mix)
-            p300.aspirate(master_mix_volume, master_mix)
-            p300.dispense(master_mix_volume, well.top())
+            master_pipette.mix(1,20,master_mix)
+            master_pipette.aspirate(master_mix_volume, master_mix)
+            master_pipette.dispense(master_mix_volume, well.top())
             mm1 -= master_mix_volume
         elif mm2 >= master_mix_volume:
-            p300.mix(1,10,master_mix2)
-            p300.aspirate(master_mix_volume, master_mix2)
-            p300.dispense(master_mix_volume, well.top())
+            master_pipette.mix(1,20,master_mix2)
+            master_pipette.aspirate(master_mix_volume, master_mix2)
+            master_pipette.dispense(master_mix_volume, well.top())
             mm2 -= master_mix_volume
         elif mm3 >= master_mix_volume:
-            p300.mix(1,10,master_mix3)
-            p300.aspirate(master_mix_volume, master_mix3)
-            p300.dispense(master_mix_volume, well.top())
+            master_pipette.mix(1,20,master_mix3)
+            master_pipette.aspirate(master_mix_volume, master_mix3)
+            master_pipette.dispense(master_mix_volume, well.top())
             mm3 -= master_mix_volume   
         else:
-            p300.mix(1,10,master_mix4)
-            p300.aspirate(master_mix_volume, master_mix4)
-            p300.dispense(master_mix_volume, well.top())                     
-    p300.drop_tip()
+            master_pipette.mix(1,20,master_mix4)
+            master_pipette.aspirate(master_mix_volume, master_mix4)
+            master_pipette.dispense(master_mix_volume, well.top())                     
+    master_pipette.drop_tip()
 
     # Thermocycling program definition
     pcr_program = [
