@@ -10,11 +10,11 @@ The 20uL  tip rack goes in slot 2 of the deck.
 The tube rack goes in slot 3 of the deck.
 
 # Running the protocol
-Download the `PCR.py` file
-Open it with your preferred code editor and enter your sample locations inside the `add_locations()` function. You only need to edit lines 16, 17 and 18.
+Download the `PCR.py` file. 
+Open it with your preferred code editor and enter your sample locations inside the `add_locations()` function. You only need to edit lines 16, 17 and 18. 
 You can define sample locations by columns, rows, and individual wells on the PCR plate (on each line respectivley).
-If you dont't wish to include one of these methods, it can be left as an empy list []
-In cases where more than one of these methods is used, all locations will be accounted for and duplicates will be removed.
+If you dont't wish to include one of these methods, it can be left as an empy list []. 
+In cases where more than one of these methods is used, all locations will be accounted for and duplicates will be removed. 
 Example: If sample_columns is set to ['1'] and sample_rows is set to ['A'], the sample locations will be considered as all of column 1 and row A, but well A1 will only be included once.
 
 Save your protocol and import it in the Opentrons app. Start the setup and adjust the settings as necessary.
