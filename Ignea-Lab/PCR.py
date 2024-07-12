@@ -181,8 +181,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # Otherwise, the robot will load the same primers in each well
     colony_pcr = protocol.params.colony_pcr # Set to True for Colony PCR
     # The following parameters are applicable if colony PCR is set to True
-    lysis_temp = 98
-    lysis_time_seconds = 600
+    lysis_temp = protocol.params.lysis_temp
+    lysis_time_seconds = protocol.params.lysis_time
 
 
 
