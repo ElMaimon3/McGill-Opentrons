@@ -219,12 +219,12 @@ def run(protocol: protocol_api.ProtocolContext):
     # Replace destination_wells with the list of unique wells
     destination_wells = unique_wells
     num_samples = len(destination_wells)
-    
+
     # Pipettes
     p300 = protocol.load_instrument(
         'p300_single_gen2', 'left', tip_racks=[tiprack])
     p20 = protocol.load_instrument(
-        'p20_single_gen2', 'left', tip_racks=[tiprack2])
+        'p20_single_gen2', 'right', tip_racks=[tiprack2])
     pcr_volume = sample_volume + master_mix_volume + primer_volume
 
     # Commands
