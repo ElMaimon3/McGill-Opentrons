@@ -10,43 +10,176 @@ metadata = {
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 
-# Runtime Parameters (Recommended)
-def add_parameters(parameters: protocol_api.Parameters):
-    parameters.add_int(
-        variable_name = "sample_volume",
-        display_name = "Sample Volume",
-        description = "The volume of template DNA or colony (for colony PCR), in uL",
-        default = 40,
-        minimum = 20,
-        maximum = 100,
-        unit="µL"
-    )
-
-def run(protocol: protocol_api.ProtocolContext):
-
+def add_locations():
     # Define sample locations by column, row and/or well
     # Any duplicated locations will be removed and raise a warning
     sample_columns = ['1','2'] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
     sample_wells = ['A3'] # eg. ['A1', 'B1']
 
+    return sample_columns, sample_rows, sample_wells
+
+# Runtime Parameters (Recommended)
+def add_parameters(parameters: protocol_api.Parameters):
+    parameters.add_int(
+        variable_name = "sample_volume",
+        display_name = "Sample Volume",
+        description = "The volume of template DNA (or colony for colony PCR)",
+        default = 40,
+        minimum = 20,
+        maximum = 100,
+        unit = "µL"
+    )
+    parameters.add_int(
+        variable_name = "master_volume",
+        display_name = "Master Mix Volume",
+        description = "The volume of master mix to add to each sample",
+        default = 40,
+        minimum = 20,
+        maximum = 100,
+        unit = "µL"
+    )
+    parameters.add_bool(
+        variable_name = "primers_loaded",
+        display_name = "Primers Loaded in each sample",
+        description = "Turn on if you need different primers for eaach sample. In this case, you must add them by hand",
+        default = False
+    )
+    parameters.add_int(
+        variable_name = "primer_volume",
+        display_name = "Primer Volume",
+        description = "The volume of primers for each sample. Either added by robot or pre loaded",
+        default = 40,
+        minimum = 20,
+        maximum = 100,
+        unit = "µL"
+    )
+    parameters.add_int(
+        variable_name = "denaturation_temp",
+        display_name = "Denaturation Temperature",
+        description = "",
+        default = 98,
+        minimum = 4,
+        maximum = 99,
+        unit = "Celsius"
+    )
+    parameters.add_int(
+        variable_name = "annealing_temp",
+        display_name = "Annealing Temperature",
+        description = "",
+        default = 63,
+        minimum = 4,
+        maximum = 99,
+        unit = "Celsius"
+    )
+    parameters.add_int(
+        variable_name = "extension_temp",
+        display_name = "Extension Temperature",
+        description = "",
+        default = 72,
+        minimum = 4,
+        maximum = 99,
+        unit = "Celsius"
+    )
+    parameters.add_int(
+        variable_name = "init_denaturation_time",
+        display_name = "Initial Denaturation Time",
+        description = "",
+        default = 15,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+    parameters.add_int(
+        variable_name = "denaturation_time",
+        display_name = "Denaturation Time",
+        description = "For each cycle",
+        default = 30,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+    parameters.add_int(
+        variable_name = "annealing_time",
+        display_name = "Annealing Time",
+        description = "For each cycle",
+        default = 20,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+    parameters.add_int(
+        variable_name = "extension_time",
+        display_name = "Extension Time",
+        description = "For each cycle",
+        default = 210,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+    parameters.add_int(
+        variable_name = "final_extension_time",
+        display_name = "Final Extension Time",
+        description = "",
+        default = 120,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+    parameters.add_int(
+        variable_name = "num_cycles",
+        display_name = "Number of cycles",
+        description = "",
+        default = 30,
+        minimum = 1,
+        maximum = 150
+    )
+    parameters.add_bool(
+        variable_name = "colony_pcr",
+        display_name = "Colony PCR",
+        description = "",
+        default = False
+    )
+    parameters.add_int(
+        variable_name = "lysis_temp",
+        display_name = "Lysis Temperature",
+        description = "For colony PCR",
+        default = 98,
+        minimum = 4,
+        maximum = 99,
+        unit = "Celsius"
+    )
+    parameters.add_int(
+        variable_name = "lysis_time",
+        display_name = "Lysis Time",
+        description = "For colony PCR",
+        default = 600,
+        minimum = 1,
+        maximum = 999,
+        unit = "Seconds"
+    )
+
+def run(protocol: protocol_api.ProtocolContext):
+
+    sample_columns, sample_rows, sample_wells = add_locations()
+
 
     # PCR parameters
     sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
-    master_mix_volume = 40 # Volume of master mix to add to each well, uL
-    primer_volume = 10 # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
-    denaturation_temp = 98
-    initial_denaturation_time_seconds = 15
-    denaturation_time_seconds = 10
-    annealing_temp = 63
-    annealing_time_seconds = 20
-    extension_temp = 72
-    extension_time_seconds = 210
-    final_extension_time_seconds = 120
-    num_cycles = 30
-    primers_loaded = False # Set to True if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
+    master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
+    primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
+    denaturation_temp = protocol.params.denaturation_temp
+    initial_denaturation_time_seconds = protocol.params.init_denaturation_time
+    denaturation_time_seconds = protocol.params.denaturation_time
+    annealing_temp = protocol.params.annealing_temp
+    annealing_time_seconds = protocol.params.annealing_time
+    extension_temp = protocol.params.extension_temp
+    extension_time_seconds = protocol.params.extension_time
+    final_extension_time_seconds = protocol.params.final_extension_time
+    num_cycles = protocol.params.num_cycles
+    primers_loaded = protocol.params.primers_loaded # Set to True if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
     # Otherwise, the robot will load the same primers in each well
-    colony_pcr = False # Set to True for Colony PCR
+    colony_pcr = protocol.params.colony_pcr # Set to True for Colony PCR
     # The following parameters are applicable if colony PCR is set to True
     lysis_temp = 98
     lysis_time_seconds = 600
