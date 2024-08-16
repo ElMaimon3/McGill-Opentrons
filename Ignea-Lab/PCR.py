@@ -1,22 +1,33 @@
 # imports
 from opentrons import protocol_api
-
+import csv
 # metadata
 metadata = {
     'protocolName': 'PCR',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
-    'description': '''OT-2 PCR with template DNA pre loaded on the PCR plate.
-    Depending on the use case, primers have to be added to each sample or left in the tube rack'''
+    'description': '''Fully customizable PCR for the Openteons OT-2
+    with template DNA pre loaded on the PCR plate. Depending on the use 
+    case, primers have to be added to each sample or left in the tube rack'''
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 
 def add_locations():
-    # Define sample locations by column, row and/or well
-    # Any duplicated locations will be removed and raise a warning
-    sample_columns = ['1','2'] # eg. ['1', '2']
+    # Define sample locations by column, row and/or well in a csv file
+    sample_columns = [] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
-    sample_wells = ['A3'] # eg. ['A1', 'B1']
-
+    sample_wells = [] # eg. ['A1', 'B1']
+    with open('Downloads/PCR_locations.csv') as file:
+        reader = csv.reader(file)
+        header = next(reader)
+        for row in reader:
+            for i in range(3):
+                if len(row[i]) != 0:
+                    if i == 0:
+                        sample_columns.append(row[i])
+                    elif i == 1:
+                        sample_rows.append(row[i])
+                    elif i == 2:
+                        sample_wells.append(row[i])
     return sample_columns, sample_rows, sample_wells
 
 # Runtime Parameters (Recommended)
