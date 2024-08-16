@@ -16,7 +16,7 @@ def add_locations():
     sample_columns = [] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
     sample_wells = [] # eg. ['A1', 'B1']
-    with open('\PCR_locations.csv') as file:
+    with open('src/PCR_locations.csv') as file:
         reader = csv.reader(file)
         header = next(reader)
         for row in reader:
