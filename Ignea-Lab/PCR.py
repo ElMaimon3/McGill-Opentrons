@@ -1,6 +1,8 @@
 # imports
 from opentrons import protocol_api
 import csv
+import io
+
 # metadata
 metadata = {
     'protocolName': 'PCR',
@@ -11,23 +13,27 @@ metadata = {
 }
 requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
 
-def add_locations():
+def add_locations(bytes):
     # Define sample locations by column, row and/or well in a csv file
     sample_columns = [] # eg. ['1', '2']
     sample_rows = [] #eg. ['A', 'B']
     sample_wells = [] # eg. ['A1', 'B1']
-    with open('PCR_locations.csv') as file:
-        reader = csv.reader(file)
-        header = next(reader)
-        for row in reader:
-            for i in range(3):
-                if len(row[i]) != 0:
-                    if i == 0:
-                        sample_columns.append(row[i])
-                    elif i == 1:
-                        sample_rows.append(row[i])
-                    elif i == 2:
-                        sample_wells.append(row[i])
+    # Decode the bytes object into a string
+    csv_string = bytes.decode('utf-8')
+
+    # Use io.StringIO to create a file-like object for csv.reader
+    csv_file = io.StringIO(csv_string)
+    reader = csv.reader(csv_file)
+    header = next(reader)
+    for row in reader:
+        for i in range(3):
+           if len(row[i]) != 0:
+                if i == 0:
+                    sample_columns.append(row[i])
+                elif i == 1:
+                    sample_rows.append(row[i])
+                elif i == 2:
+                    sample_wells.append(row[i])
     return sample_columns, sample_rows, sample_wells
 
 # Runtime Parameters (Recommended)
@@ -171,8 +177,8 @@ def add_parameters(parameters: protocol_api.Parameters):
     )
 
 def run(protocol: protocol_api.ProtocolContext):
-
-    sample_columns, sample_rows, sample_wells = add_locations()
+    bundled_data = protocol.bundled_data['PCR_locations.csv']
+    sample_columns, sample_rows, sample_wells = add_locations(bundled_data)
 
 
     # PCR parameters
