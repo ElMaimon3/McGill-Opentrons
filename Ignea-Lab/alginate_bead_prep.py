@@ -60,7 +60,7 @@ def run(protocol: protocol_api.ProtocolContext):
     available_res = protocol.params.available_res
     if  not protocol.params.debug:
         # Protocol goes here
-        if (14*available_res) < (0.3*bead_num):
+        if (14*available_res) < (0.001*bead_size*bead_num):
             raise ValueError("Not enough alginate solution")
         available = [14.0 for i in range(available_res)]
         current_reservoir = 0
@@ -68,7 +68,7 @@ def run(protocol: protocol_api.ProtocolContext):
         names = {'A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12'}
         p300.pick_up_tip()
         while beads < bead_num:
-            if available[current_reservoir] < 2.4:
+            if available[current_reservoir] < (8*0.001*bead_size):
                 current_reservoir += 1
             else:
                 origin = res.wells_by_name()[names[current_reservoir]].top(-vol_to_height(available[current_reservoir]))
