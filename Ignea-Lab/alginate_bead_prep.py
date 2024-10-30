@@ -84,6 +84,7 @@ def run(protocol: protocol_api.ProtocolContext):
         vol = 15.0
         while vol > 1:
             p300.transfer(300, a.top(-vol_to_height(vol)),b,new_tip='never')
+            vol-=(8*0.3)
         p300.drop_tip()
     
 def vol_to_height(vol):
