@@ -36,7 +36,7 @@ def add_locations(bytes):
                     sample_wells.append(row[i])
     return sample_columns, sample_rows, sample_wells
 
-# Runtime Parameters (Recommended)
+# Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
     parameters.add_int(
         variable_name = "sample_volume",
