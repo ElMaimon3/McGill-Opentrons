@@ -5,18 +5,18 @@ import io
 
 # metadata
 metadata = {
-    'protocolName': 'PCR',
+    'protocolName': 'Customizable PCR',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
-    'description': '''Fully customizable PCR for the Openteons OT-2
+    'description': '''Fully customizable PCR for the Openteons Flex
     with template DNA pre loaded on the PCR plate. Depending on the use 
-    case, primers have to be added to each sample or left in the tube rack'''
+    case, primers have to be added to each sample or left in the reservoir'''
 }
-requirements = {"robotType": "OT-2", "apiLevel": "2.19"}
+requirements = {"robotType": "Flex", "apiLevel": "2.19"}
 
 def add_locations(bytes):
     # Define sample locations by column, row and/or well in a csv file
     sample_columns = [] # eg. ['1', '2']
-    sample_rows = [] #eg. ['A', 'B']
+    sample_rows = [] # eg. ['A', 'B']
     sample_wells = [] # eg. ['A1', 'B1']
     # Decode the bytes object into a string
     csv_string = bytes.decode('utf-8')
@@ -204,8 +204,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Labware definitions
-    tiprack = protocol.load_labware('opentrons_96_tiprack_300ul', '1')
-    tiprack2 = protocol.load_labware('opentrons_96_tiprack_20ul', '2')
+    tiprack = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
+    tiprack2 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
@@ -239,9 +239,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Pipettes
     p300 = protocol.load_instrument(
-        'p300_single_gen2', 'left', tip_racks=[tiprack])
+        'flex_8channel_50', 'left', tip_racks=[tiprack])
     p20 = protocol.load_instrument(
-        'p20_single_gen2', 'right', tip_racks=[tiprack2])
+        'flex_8channel_1000', 'right', tip_racks=[tiprack2])
     pcr_volume = sample_volume + master_mix_volume + primer_volume
 
     # Commands
