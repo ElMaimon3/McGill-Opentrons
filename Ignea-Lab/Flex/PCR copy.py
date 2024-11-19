@@ -16,9 +16,9 @@ requirements = {"robotType": "Flex", "apiLevel": "2.20"}
 
 # Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
-    parameters.add_string(
+    parameters.add_str(
         variable_name = "location_mode",
-        display_name = "96-well Plate Location Definiton",
+        display_name = "96-well Location Definiton",
         choices=[
         {"display_name": "Simple", "value": "simple"},
         {"display_name": "Custom", "value": "custom"},
@@ -31,7 +31,8 @@ def add_parameters(parameters: protocol_api.Parameters):
     )
     parameters.add_int(
         variable_name = "columns",
-        display_name = "Columns (Simple Location Definition Only)",
+        display_name = "Columns",
+        description = "Simple Location Definition Only",
         default = 2,
         minimum = 1,
         maximum = 12
@@ -210,6 +211,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Labware definitions
     # Thermocycler simulataneously occupies A1 and B1
+    chute = protocol.load_waste_chute()
     tiprack = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
     tiprack2 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
     res = protocol.load_labware('nest_12_reservoir_15ml','C1')
@@ -222,8 +224,8 @@ def run(protocol: protocol_api.ProtocolContext):
     p200 = protocol.load_instrument(
         'flex_8channel_1000', 'right', tip_racks=[tiprack2])
     pcr_volume = sample_volume + master_mix_volume + primer_volume
-    master_mix = res.wells_by_name()['A1'].top(-34)
-    primers = res.wells_by_name()['A2'].top(-34)
+    master_mix = res.wells_by_name()['A1']
+    primers = res.wells_by_name()['A2']
     p1 = 7.5
     mm1 = 7.5
 
@@ -244,7 +246,8 @@ def run(protocol: protocol_api.ProtocolContext):
             else:
                 primer_pipette = p200
             primer_pipette.pick_up_tip()
-            for c in tc_plate.columns[:cols]:
+            for c in tc_plate.columns()[:cols]:
+                c = c[0]
                 primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
                 primer_pipette.dispense(primer_volume,c.top())
                 p1 -= 8 * 0.001 * primer_volume
@@ -257,10 +260,11 @@ def run(protocol: protocol_api.ProtocolContext):
             master_pipette = p200
 
         master_pipette.pick_up_tip()
-        for c in tc_plate.columns[:cols]:
+        for c in tc_plate.columns()[:cols]:
+            c = c[0]
             master_pipette.mix(1,master_mix_volume,master_mix)
             master_pipette.aspirate(master_mix_volume, master_mix.top(-vol_to_height(mm1)))
-            master_pipette.dispense(master_mix_volume, well.top())
+            master_pipette.dispense(master_mix_volume, c.top())
             mm1 -= 8 * 0.001 * master_mix_volume                     
         master_pipette.drop_tip()
     else:
