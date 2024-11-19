@@ -25,6 +25,7 @@ def add_locations(bytes):
     csv_file = io.StringIO(csv_string)
     reader = csv.reader(csv_file)
     header = next(reader)
+    header = next(reader)
     for row in reader:
         for i in range(3):
            if len(row[i]) != 0:
@@ -38,6 +39,23 @@ def add_locations(bytes):
 
 # Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
+    parameters.add_string(
+        variable_name = "location_mode",
+        display_name = "96-well Plate Location Definiton",
+        choices=[
+        {"display_name": "Simple", "value": "simple"},
+        {"display_name": "Custom", "value": "custom"},
+        ],
+        default="simple",
+        description = "Simple: Columns, starting from the left \n Custom: Requires PCR_locations.csv. May save tips"
+    )
+    parameters.add_int(
+        variable_name = "columns",
+        display_name = "Columns (Simple Location Definition Only)",
+        default = 2,
+        minimum = 1,
+        maximum = 12
+    )
     parameters.add_int(
         variable_name = "sample_volume",
         display_name = "Sample Volume",
@@ -182,6 +200,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # PCR parameters
+    mode = protocol.params.location_mode
+    cols = protocol.params.columns
     sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
     master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
     primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
@@ -201,14 +221,31 @@ def run(protocol: protocol_api.ProtocolContext):
     lysis_temp = protocol.params.lysis_temp
     lysis_time_seconds = protocol.params.lysis_time
 
-
-
     # Labware definitions
+    # Thermocycler simulataneously occupies A1 and B1
     tiprack = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
     tiprack2 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', '3')
+    res = protocol.load_labware('nest_12_reservoir_15ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
+
+    # Pipettes
+    p50 = protocol.load_instrument(
+        'flex_8channel_50', 'left', tip_racks=[tiprack])
+    p200 = protocol.load_instrument(
+        'flex_8channel_1000', 'right', tip_racks=[tiprack2])
+    pcr_volume = sample_volume + master_mix_volume + primer_volume
+    master_mix = res.wells_by_name()['A1'].top(-34)
+    primers = res.wells_by_name()['A2'].top(-34)
+
+    # Thermocycling program definition
+    pcr_program = [
+        {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
+        {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
+        {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},   # Extension
+    ]
+    # Commands
+    tc_mod.open_lid()
 
     # Define wells and remove duplicates
     destination_wells = []
@@ -237,32 +274,13 @@ def run(protocol: protocol_api.ProtocolContext):
     destination_wells = unique_wells
     num_samples = len(destination_wells)
 
-    # Pipettes
-    p300 = protocol.load_instrument(
-        'flex_8channel_50', 'left', tip_racks=[tiprack])
-    p20 = protocol.load_instrument(
-        'flex_8channel_1000', 'right', tip_racks=[tiprack2])
-    pcr_volume = sample_volume + master_mix_volume + primer_volume
 
-    # Commands
-    tc_mod.open_lid()
-    master_mix = tube_rack.wells_by_name()['A1'].top(-34)
-    master_mix2 = tube_rack.wells_by_name()['B1'].top(-34)
-    master_mix3 = tube_rack.wells_by_name()['C1'].top(-34)
-    master_mix4 = tube_rack.wells_by_name()['D1'].top(-34)
-    primers = tube_rack.wells_by_name()['A2'].top(-34)
-    primers2 = tube_rack.wells_by_name()['B2'].top(-34)
-    mm1 = 1470
-    mm2 = 1470
-    mm3 = 1470
-    p1 = 1470
-    
     # Transfer appropriate reagents to pcr plate
     if not primers_loaded:
-        if primer_volume < 20:
-            primer_pipette = p20
+        if primer_volume < 50:
+            primer_pipette = p50
         else:
-            primer_pipette = p300
+            primer_pipette = p200
         primer_pipette.pick_up_tip()
         for well in destination_wells:
             if p1 >= primer_volume:
@@ -274,10 +292,10 @@ def run(protocol: protocol_api.ProtocolContext):
                 primer_pipette.dispense(primer_volume,well.top())
         primer_pipette.drop_tip()
 
-    if master_mix_volume <20:
-        master_pipette = p20
+    if master_mix_volume <50:
+        master_pipette = p50
     else:
-        master_pipette = p300
+        master_pipette = p200
 
     master_pipette.pick_up_tip()
     for well in destination_wells:
@@ -302,12 +320,6 @@ def run(protocol: protocol_api.ProtocolContext):
             master_pipette.dispense(master_mix_volume, well.top())                     
     master_pipette.drop_tip()
 
-    # Thermocycling program definition
-    pcr_program = [
-        {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
-        {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
-        {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},   # Extension
-    ]
 
     # Run thermocycler
     protocol.comment("Running thermocycler...")
