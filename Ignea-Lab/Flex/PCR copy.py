@@ -1,7 +1,7 @@
 # imports
 from opentrons import protocol_api
 import csv
-import io
+
 
 # metadata
 metadata = {
@@ -24,7 +24,10 @@ def add_parameters(parameters: protocol_api.Parameters):
         {"display_name": "Custom", "value": "custom"},
         ],
         default="simple",
-        description = "Simple: Columns, starting from the left \n Custom: Requires PCR_locations.csv. May save tips"
+        description = (
+            "Simple: Columns, starting from the left"
+            " Custom: Requires PCR_locations.csv. May save tips"
+        )
     )
     parameters.add_int(
         variable_name = "columns",
@@ -32,6 +35,15 @@ def add_parameters(parameters: protocol_api.Parameters):
         default = 2,
         minimum = 1,
         maximum = 12
+    )
+    parameters.add_csv_file(
+        variable_name="well_csv",
+        display_name="PCR loactions csv",
+        description=(
+            "Table with three columns:"
+            " rows (e.g. 1), columns (e.g. B)"
+            " and wells (e.g. B1)"
+        )
     )
     parameters.add_int(
         variable_name = "sample_volume",
@@ -176,6 +188,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # PCR parameters
     mode = protocol.params.location_mode
     cols = protocol.params.columns
+    well_csv = protocol.params.well_csv
     sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
     master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
     primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
@@ -251,8 +264,8 @@ def run(protocol: protocol_api.ProtocolContext):
             mm1 -= 8 * 0.001 * master_mix_volume                     
         master_pipette.drop_tip()
     else:
-        bundled_data = protocol.bundled_data['PCR_locations.csv']
-        sample_columns, sample_rows, sample_wells = add_locations(bundled_data)
+        well_data = well_csv.parse_as_csv()
+        sample_columns, sample_rows, sample_wells = add_locations(well_data)
         # Define wells and remove duplicates
         destination_wells = []
         for col in sample_columns:
@@ -302,20 +315,12 @@ def vol_to_height(vol):
     else:
         return full_depth
 
-def add_locations(bytes):
+def add_locations(list):
     # Define sample locations by column, row and/or well in a csv file
     sample_columns = [] # eg. ['1', '2']
     sample_rows = [] # eg. ['A', 'B']
     sample_wells = [] # eg. ['A1', 'B1']
-    # Decode the bytes object into a string
-    csv_string = bytes.decode('utf-8')
-
-    # Use io.StringIO to create a file-like object for csv.reader
-    csv_file = io.StringIO(csv_string)
-    reader = csv.reader(csv_file)
-    header = next(reader)
-    header = next(reader)
-    for row in reader:
+    for row in list[1:]:
         for i in range(3):
            if len(row[i]) != 0:
                 if i == 0:
