@@ -283,7 +283,7 @@ def run(protocol: protocol_api.ProtocolContext):
            well_str = str(well)
            if well_str not in occurrences:
                # If the well is not in the dictionary, add it to unique_wells
-               unique_wells.append(well)
+               unique_wells.append(well_str)
                # And add it to the dictionary
                occurrences[well_str] = True
            else:
@@ -291,7 +291,9 @@ def run(protocol: protocol_api.ProtocolContext):
                 protocol.comment(f"Duplicate location found and removed: {well_str}")
         # Replace destination_wells with the list of unique wells
         destination_wells = unique_wells
-        num_samples = len(destination_wells)
+        grouped_wells = group_wells(unique_wells)
+        
+
 
 
     # Run thermocycler
@@ -330,3 +332,26 @@ def add_locations(list):
                 elif i == 2:
                     sample_wells.append(row[i])
     return sample_columns, sample_rows, sample_wells
+
+def group_wells(unique_wells):
+    # Sort wells in ascending order
+    unique_wells.sort(key=lambda x: (ord(x[0]), int(x[1:])))
+
+    grouped_wells = []
+    
+    for well in unique_wells:
+        if not grouped_wells:
+            grouped_wells.append([well])
+        else:
+            added = False
+            for group in grouped_wells:
+                last_well = group[-1]
+                # Check if the current well is vertically adjacent to the last well in the group
+                if ord(well[0]) - ord(last_well[0]) == 1 and int(well[1:]) == int(last_well[1:]):
+                    group.append(well)
+                    added = True
+                    break
+            if not added:
+                grouped_wells.append([well])
+
+    return grouped_wells
