@@ -252,35 +252,37 @@ def run(protocol: protocol_api.ProtocolContext):
         destination_wells = unique_wells
         grouped_wells = group_wells(unique_wells)
 
+        for group in grouped_wells:
+            group_size = len(group)
+            loc = tc_plate.wells_by_name()[group[0]]
+            # Transfer appropriate reagents to pcr plate
+            if not primers_loaded:
+                if primer_volume < 50:
+                    primer_pipette = p50
+                else:
+                    primer_pipette = p200
+                primer_pipette.pick_up_tip()
+                for c in tc_plate.columns()[:cols]:
+                    c = c[0]
+                    primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
+                    primer_pipette.dispense(primer_volume,c.top())
+                    p1 -= 8 * 0.001 * primer_volume
 
-        # Transfer appropriate reagents to pcr plate
-        if not primers_loaded:
-            if primer_volume < 50:
-                primer_pipette = p50
+                primer_pipette.drop_tip()
+
+            if master_mix_volume < 50:
+                master_pipette = p50
             else:
-                primer_pipette = p200
-            primer_pipette.pick_up_tip()
+                master_pipette = p200
+
+            master_pipette.pick_up_tip()
             for c in tc_plate.columns()[:cols]:
                 c = c[0]
-                primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
-                primer_pipette.dispense(primer_volume,c.top())
-                p1 -= 8 * 0.001 * primer_volume
-
-            primer_pipette.drop_tip()
-
-        if master_mix_volume < 50:
-            master_pipette = p50
-        else:
-            master_pipette = p200
-
-        master_pipette.pick_up_tip()
-        for c in tc_plate.columns()[:cols]:
-            c = c[0]
-            master_pipette.mix(1,master_mix_volume,master_mix)
-            master_pipette.aspirate(master_mix_volume, master_mix.top(-vol_to_height(mm1)))
-            master_pipette.dispense(master_mix_volume, c.top())
-            mm1 -= 8 * 0.001 * master_mix_volume                     
-        master_pipette.drop_tip()
+                master_pipette.mix(1,master_mix_volume,master_mix)
+                master_pipette.aspirate(master_mix_volume, master_mix.top(-vol_to_height(mm1)))
+                master_pipette.dispense(master_mix_volume, c.top())
+                mm1 -= 8 * 0.001 * master_mix_volume                     
+            master_pipette.drop_tip()
     else:
         pass
         

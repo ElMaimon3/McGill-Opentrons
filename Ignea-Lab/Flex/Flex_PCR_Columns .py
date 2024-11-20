@@ -251,7 +251,12 @@ def run(protocol: protocol_api.ProtocolContext):
             mm1 -= 8 * 0.001 * master_mix_volume                     
         master_pipette.drop_tip()
     else:
-        pass
+        vol = 15
+        p50.pick_up_tip()
+        while vol > 8 * 0.001 * 50:
+            p50.transfer(50,master_mix,primers)
+        p50.drop_tip()
+
 
 
     if not debug:
