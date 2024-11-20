@@ -255,6 +255,7 @@ def run(protocol: protocol_api.ProtocolContext):
         p50.pick_up_tip()
         while vol > 8 * 0.001 * 50:
             p50.transfer(50,master_mix,primers)
+            vol -= 8 * 0.001 * 50
         p50.drop_tip()
 
 
