@@ -254,11 +254,13 @@ def run(protocol: protocol_api.ProtocolContext):
         # Replace destination_wells with the list of unique wells
         destination_wells = unique_wells
         grouped_wells = group_wells(unique_wells)
-
+        last_size = 0
         for group in grouped_wells:
             group_size = len(group)
             loc = tc_plate.wells_by_name()[group[-1]]
-            if group_size == 1:
+            if group_size == last_size:
+                pass
+            elif group_size == 1:
                 p50.configure_nozzle_layout(
                     style=SINGLE,
                     start="H1"
@@ -300,7 +302,9 @@ def run(protocol: protocol_api.ProtocolContext):
                     p1 -= 8 * 0.001 * primer_volume
 
                 primer_pipette.drop_tip()
+            last_size = group_size
 
+        # PASTE ALL GROUP HERE AND MODIFY MASTER MIX ADDITION ACCORDINGLY
             if master_mix_volume < 50:
                 master_pipette = p50
             else:
@@ -376,5 +380,6 @@ def group_wells(unique_wells):
                     break
             if not added:
                 grouped_wells.append([well])
-
+    
+    grouped_wells.sort(key=lambda group: len(group), reverse=True)
     return grouped_wells
