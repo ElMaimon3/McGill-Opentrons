@@ -5,13 +5,13 @@ import csv
 
 # metadata
 metadata = {
-    'protocolName': 'Customizable PCR (Columns)',
+    'protocolName': 'Customizable PCR (Full Columns)',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': '''Fully customizable PCR for the Openteons Flex
     with template DNA pre loaded on the PCR plate. Depending on the use 
-    case, primers have to be added to each sample or left in the reservoir'''
+    case, primers have to be manually added to each sample or left in the reservoir'''
 }
-requirements = {"robotType": "Flex", "apiLevel": "2.20"}
+requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
 
 # Runtime Parameters

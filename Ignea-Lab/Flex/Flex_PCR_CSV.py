@@ -1,5 +1,6 @@
 # imports
 from opentrons import protocol_api
+from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 import csv
 
 
@@ -9,9 +10,9 @@ metadata = {
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': '''Fully customizable PCR for the Openteons Flex
     with template DNA pre loaded on the PCR plate. Depending on the use 
-    case, primers have to be added to each sample or left in the reservoir'''
+    case, primers have to be manually added to each sample or left in the reservoir'''
 }
-requirements = {"robotType": "Flex", "apiLevel": "2.20"}
+requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
 
 # Runtime Parameters
@@ -196,17 +197,19 @@ def run(protocol: protocol_api.ProtocolContext):
     # Labware definitions
     # Thermocycler simulataneously occupies A1 and B1
     chute = protocol.load_waste_chute()
-    tiprack = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
-    tiprack2 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
+    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
+    tips50 = tiprack50.wells()
+    tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
+    tips200 = tiprack200.wells()
     res = protocol.load_labware('nest_12_reservoir_15ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
 
     # Pipettes
     p50 = protocol.load_instrument(
-        'flex_8channel_50', 'left', tip_racks=[tiprack])
+        'flex_8channel_50', 'left')
     p200 = protocol.load_instrument(
-        'flex_8channel_1000', 'right', tip_racks=[tiprack2])
+        'flex_8channel_1000', 'right')
     pcr_volume = sample_volume + master_mix_volume + primer_volume
     master_mix = res.wells_by_name()['A1']
     primers = res.wells_by_name()['A2']
@@ -254,7 +257,35 @@ def run(protocol: protocol_api.ProtocolContext):
 
         for group in grouped_wells:
             group_size = len(group)
-            loc = tc_plate.wells_by_name()[group[0]]
+            loc = tc_plate.wells_by_name()[group[-1]]
+            if group_size == 1:
+                p50.configure_nozzle_layout(
+                    style=SINGLE,
+                    start="H1"
+                )
+                p200.configure_nozzle_layout(
+                    style=SINGLE,
+                    start="H1"
+                )
+            elif group_size == 8:
+                p50.configure_nozzle_layout(
+                    style=ALL
+                )
+                p200.configure_nozzle_layout(
+                    style=ALL
+                )
+            else:
+                last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
+                p50.configure_nozzle_layout(
+                    style=PARTIAL_COLUMN,
+                    start="H1",
+                    end=last
+                )
+                p200.configure_nozzle_layout(
+                    style=PARTIAL_COLUMN,
+                    start="H1",
+                    end=last
+                )
             # Transfer appropriate reagents to pcr plate
             if not primers_loaded:
                 if primer_volume < 50:
