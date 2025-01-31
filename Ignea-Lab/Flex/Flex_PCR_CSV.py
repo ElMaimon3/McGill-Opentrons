@@ -255,45 +255,49 @@ def run(protocol: protocol_api.ProtocolContext):
         destination_wells = unique_wells
         grouped_wells = group_wells(unique_wells)
         last_size = 0
-        for group in grouped_wells:
-            group_size = len(group)
-            loc = tc_plate.wells_by_name()[group[-1]]
-            if group_size == last_size:
-                pass
-            elif group_size == 1:
-                p50.configure_nozzle_layout(
-                    style=SINGLE,
-                    start="H1"
-                )
-                p200.configure_nozzle_layout(
-                    style=SINGLE,
-                    start="H1"
-                )
-            elif group_size == 8:
-                p50.configure_nozzle_layout(
-                    style=ALL
-                )
-                p200.configure_nozzle_layout(
-                    style=ALL
-                )
-            else:
-                last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
-                p50.configure_nozzle_layout(
-                    style=PARTIAL_COLUMN,
-                    start="H1",
-                    end=last
-                )
-                p200.configure_nozzle_layout(
-                    style=PARTIAL_COLUMN,
-                    start="H1",
-                    end=last
-                )
-            # Transfer appropriate reagents to pcr plate
-            if not primers_loaded:
+        if not primers_loaded:
+            for group in grouped_wells:
+                group_size = len(group)
+                loc = tc_plate.wells_by_name()[group[-1]]
+                if group_size == last_size:
+                    pass
+                elif group_size == 1:
+                    p50.configure_nozzle_layout(
+                        style=SINGLE,
+                        start="H1"
+                    )
+                    p200.configure_nozzle_layout(
+                        style=SINGLE,
+                        start="H1"
+                    )
+                elif group_size == 8:
+                    p50.configure_nozzle_layout(
+                        style=ALL
+                    )
+                    p200.configure_nozzle_layout(
+                        style=ALL
+                    )
+                else:
+                    last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
+                    p50.configure_nozzle_layout(
+                        style=PARTIAL_COLUMN,
+                        start="H1",
+                        end=last
+                    )
+                    p200.configure_nozzle_layout(
+                        style=PARTIAL_COLUMN,
+                        start="H1",
+                        end=last
+                    )
+                # Transfer primers to pcr plate
                 if primer_volume < 50:
                     primer_pipette = p50
+                    rack = tiprack50
+                    tips = tips50
                 else:
                     primer_pipette = p200
+                    rack = tiprack200
+                    tips = tips200
                 primer_pipette.pick_up_tip()
                 for c in tc_plate.columns()[:cols]:
                     c = c[0]
@@ -304,7 +308,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 primer_pipette.drop_tip()
             last_size = group_size
 
-        # PASTE ALL GROUP HERE AND MODIFY MASTER MIX ADDITION ACCORDINGLY
+        # PASTE ALL GROUP CODE HERE AND MODIFY MASTER MIX ADDITION ACCORDINGLY
             if master_mix_volume < 50:
                 master_pipette = p50
             else:
