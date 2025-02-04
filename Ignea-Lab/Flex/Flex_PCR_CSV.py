@@ -228,6 +228,7 @@ def run(protocol: protocol_api.ProtocolContext):
     if not debug:
         well_data = well_csv.parse_as_csv()
         sample_columns, sample_rows, sample_wells = add_locations(well_data)
+
         # Define wells and remove duplicates
         destination_wells = []
         for col in sample_columns:
@@ -235,7 +236,6 @@ def run(protocol: protocol_api.ProtocolContext):
         for row in sample_rows:
            destination_wells.extend(tc_plate.rows_by_name()[row])
         destination_wells.extend([tc_plate.wells_by_name()[well] for well in sample_wells])
-
         # Initialize an empty dictionary to track occurrences
         occurrences = {}
         # Initialize an empty list to store the unique wells
@@ -253,7 +253,11 @@ def run(protocol: protocol_api.ProtocolContext):
                 protocol.comment(f"Duplicate location found and removed: {well_str}")
         # Replace destination_wells with the list of unique wells
         destination_wells = unique_wells
+
+        # Group wells and sort them by size
         grouped_wells = group_wells(unique_wells)
+
+        # Go through groups and adjust the pipette settings
         last_size = 0
         tip_attached = False
         if not primers_loaded:
@@ -291,7 +295,7 @@ def run(protocol: protocol_api.ProtocolContext):
                         start="H1",
                         end=last
                     )
-                # Transfer primers to pcr plate
+                # Select primer pipette
                 if primer_volume < 50:
                     primer_pipette = p50
                     rack = tiprack50
@@ -300,6 +304,8 @@ def run(protocol: protocol_api.ProtocolContext):
                     primer_pipette = p200
                     rack = tiprack200
                     tips = tips200
+
+                # Pick up a different number of tips if needed
                 if not keep_tips:
                     if tip_attached:
                         primer_pipette.drop_tip()
@@ -307,6 +313,7 @@ def run(protocol: protocol_api.ProtocolContext):
                     primer_pipette.pick_up_tip(rack.wells_by_name()[tip_loc])
                     tip_attached = True
 
+                # Add primers to PCR plate
                 primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
                 primer_pipette.dispense(primer_volume,loc.top())
                 p1 -= group_size * 0.001 * primer_volume
@@ -314,6 +321,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 primer_pipette.drop_tip()
                 last_size = group_size
             
+            # Update available tip data
             if primer_volume < 50:
                 tips50 = tips
             else:
@@ -353,6 +361,7 @@ def run(protocol: protocol_api.ProtocolContext):
     
 
 def vol_to_height(vol):
+    ''''''
     full_depth = 40
     if vol > 0:
         return round(-2.6*vol + full_depth)
