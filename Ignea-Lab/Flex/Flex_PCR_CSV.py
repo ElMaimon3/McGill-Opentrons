@@ -198,9 +198,9 @@ def run(protocol: protocol_api.ProtocolContext):
     # Thermocycler simulataneously occupies A1 and B1
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
-    tips50 = tiprack50.wells()
+    tips50 = list(tiprack50.wells_by_name().keys())
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    tips200 = tiprack200.wells()
+    tips200 = list(tiprack200.wells_by_name().keys())
     res = protocol.load_labware('nest_12_reservoir_15ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
@@ -255,12 +255,14 @@ def run(protocol: protocol_api.ProtocolContext):
         destination_wells = unique_wells
         grouped_wells = group_wells(unique_wells)
         last_size = 0
+        tip_attached = False
         if not primers_loaded:
             for group in grouped_wells:
+                keep_tips = False
                 group_size = len(group)
                 loc = tc_plate.wells_by_name()[group[-1]]
                 if group_size == last_size:
-                    pass
+                    keep_tips = True
                 elif group_size == 1:
                     p50.configure_nozzle_layout(
                         style=SINGLE,
@@ -298,15 +300,24 @@ def run(protocol: protocol_api.ProtocolContext):
                     primer_pipette = p200
                     rack = tiprack200
                     tips = tips200
-                primer_pipette.pick_up_tip()
-                for c in tc_plate.columns()[:cols]:
-                    c = c[0]
-                    primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
-                    primer_pipette.dispense(primer_volume,c.top())
-                    p1 -= 8 * 0.001 * primer_volume
+                if not keep_tips:
+                    if tip_attached:
+                        primer_pipette.drop_tip()
+                    tip_loc , tips = smart_pick_up(group_size, tips)
+                    primer_pipette.pick_up_tip(rack.wells_by_name()[tip_loc])
+                    tip_attached = True
+
+                primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
+                primer_pipette.dispense(primer_volume,loc.top())
+                p1 -= group_size * 0.001 * primer_volume
 
                 primer_pipette.drop_tip()
-            last_size = group_size
+                last_size = group_size
+            
+            if primer_volume < 50:
+                tips50 = tips
+            else:
+                tips200 = tips
 
         # PASTE ALL GROUP CODE HERE AND MODIFY MASTER MIX ADDITION ACCORDINGLY
             if master_mix_volume < 50:
@@ -387,3 +398,8 @@ def group_wells(unique_wells):
     
     grouped_wells.sort(key=lambda group: len(group), reverse=True)
     return grouped_wells
+
+def smart_pick_up(size, tips):
+    loc = "A1"
+
+    return loc, tips
