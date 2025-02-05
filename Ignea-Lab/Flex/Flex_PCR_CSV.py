@@ -361,7 +361,9 @@ def run(protocol: protocol_api.ProtocolContext):
     
 
 def vol_to_height(vol):
-    ''''''
+    '''Inputs: vol(float), Outputs: depth (float)
+    Takes the volume of liquid in a container in mL and outputs
+    the appropriate pipette depth in mm for that container'''
     full_depth = 40
     if vol > 0:
         return round(-2.6*vol + full_depth)
@@ -369,6 +371,8 @@ def vol_to_height(vol):
         return full_depth
 
 def add_locations(list):
+    '''Extractes the location data from Opentrons' parse_as_csv() method
+    and outputs three lists'''
     # Define sample locations by column, row and/or well in a csv file
     sample_columns = [] # eg. ['1', '2']
     sample_rows = [] # eg. ['A', 'B']
@@ -385,6 +389,8 @@ def add_locations(list):
     return sample_columns, sample_rows, sample_wells
 
 def group_wells(unique_wells):
+    '''Inputs: unique_wells (list), Outputs: grouped_wells (list of lists)
+    Groups wells into vertically adjacent groups and returns them in a list ordered by size'''
     # Sort wells in ascending order
     unique_wells.sort(key=lambda x: (ord(x[0]), int(x[1:])))
 
@@ -409,6 +415,10 @@ def group_wells(unique_wells):
     return grouped_wells
 
 def smart_pick_up(size, tips):
+    '''Inputs: size (int), tips (list but maybe will change), Outputs: loc: (string), tips (list)
+    From the given group size and available tips, picks a location for the multi channel pipette
+    to target when picking up tips and updates the available tips to remove all tips that will be
+    picked up'''
     loc = "A1"
 
     return loc, tips
