@@ -198,9 +198,9 @@ def run(protocol: protocol_api.ProtocolContext):
     # Thermocycler simulataneously occupies A1 and B1
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
-    tips50 = list(tiprack50.wells_by_name().keys())
+    tips50 = None
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    tips200 = list(tiprack200.wells_by_name().keys())
+    tips200 = None
     res = protocol.load_labware('nest_12_reservoir_15ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
@@ -414,11 +414,43 @@ def group_wells(unique_wells):
     grouped_wells.sort(key=lambda group: len(group), reverse=True)
     return grouped_wells
 
-def smart_pick_up(size, tips):
-    '''Inputs: size (int), tips (list but maybe will change), Outputs: loc: (string), tips (list)
-    From the given group size and available tips, picks a location for the multi channel pipette
-    to target when picking up tips and updates the available tips to remove all tips that will be
-    picked up'''
-    loc = "A1"
+class NotEnoughTips(Exception):
+    pass
 
-    return loc, tips
+def smart_pick_up(size, tips=None):
+    if tips is None:
+        tips = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
+
+    def is_column_clear(column, start_row):
+        for row in range(start_row):
+            loc = f"{chr(65+row)}{column+1}"
+            if tips.get(loc, False):
+                return False
+        return True
+
+    # Iterate over columns
+    for col in range(12):
+        if size == 1:
+            for row in range(7, -1, -1):
+                loc = f"{chr(65+row)}{col+1}"
+                if tips.get(loc, False) and is_column_clear(col, row):
+                    tips[loc] = False
+                    return loc, tips
+
+        elif 2 <= size <= 7:
+            for row in range(8 - size + 1):
+                if all(tips.get(f"{chr(65+row+i)}{col+1}", False) for i in range(size)) and is_column_clear(col, row):
+                    loc = f"{chr(65+row+size-1)}{col+1}"
+                    for i in range(size):
+                        tips[f"{chr(65+row+i)}{col+1}"] = False
+                    return loc, tips
+
+        elif size == 8:
+            if all(tips.get(f"{chr(65+row)}{col+1}", False) for row in range(8)):
+                loc = f"A{col+1}"
+                for row in range(8):
+                    tips[f"{chr(65+row)}{col+1}"] = False
+                return loc, tips
+
+    raise NotEnoughTips("Not enough tips available")
+
