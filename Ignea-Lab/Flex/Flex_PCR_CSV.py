@@ -203,7 +203,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tips200 = None
     res = protocol.load_labware('nest_12_reservoir_15ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
-    tc_plate = tc_mod.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt')
+    tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
 
     # Pipettes
     p50 = protocol.load_instrument(
@@ -265,6 +265,8 @@ def run(protocol: protocol_api.ProtocolContext):
                 keep_tips = False
                 group_size = len(group)
                 loc = tc_plate.wells_by_name()[group[-1]]
+                if group_size == 8:
+                    loc = tc_plate.wells_by_name()[group[0]]
                 if group_size == last_size:
                     keep_tips = True
                 elif group_size == 1:
@@ -346,6 +348,7 @@ def run(protocol: protocol_api.ProtocolContext):
         
 
     if not debug:
+        # MOVE TC PLATE INTO THERMOCYCLER
         # Run thermocycler
         protocol.comment("Running thermocycler...")
         tc_mod.close_lid()
