@@ -348,7 +348,9 @@ def run(protocol: protocol_api.ProtocolContext):
         
 
     if not debug:
-        # MOVE TC PLATE INTO THERMOCYCLER
+        protocol.move_labware(
+        labware=tc_plate, new_location=tc_mod, use_gripper=True
+    )
         # Run thermocycler
         protocol.comment("Running thermocycler...")
         tc_mod.close_lid()
