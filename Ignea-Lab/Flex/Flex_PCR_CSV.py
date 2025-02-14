@@ -30,9 +30,9 @@ def add_parameters(parameters: protocol_api.Parameters):
         variable_name = "sample_volume",
         display_name = "Sample Volume",
         description = "The volume of template DNA (or colony for colony PCR)",
-        default = 40,
-        minimum = 20,
-        maximum = 50,
+        default = 1,
+        minimum = 1,
+        maximum = 25,
         unit = "µL"
     )
     parameters.add_int(
@@ -41,7 +41,7 @@ def add_parameters(parameters: protocol_api.Parameters):
         description = "The volume of master mix to add to each sample",
         default = 20,
         minimum = 10,
-        maximum = 25,
+        maximum = 100,
         unit = "µL"
     )
     parameters.add_bool(
@@ -55,8 +55,8 @@ def add_parameters(parameters: protocol_api.Parameters):
         display_name = "Primer Volume",
         description = "The volume of primers for each sample. Either added by robot or pre loaded",
         default = 20,
-        minimum = 10,
-        maximum = 25,
+        minimum = 5,
+        maximum = 30,
         unit = "µL"
     )
     parameters.add_int(
