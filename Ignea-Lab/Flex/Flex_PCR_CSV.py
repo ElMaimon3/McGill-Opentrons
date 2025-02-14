@@ -329,20 +329,71 @@ def run(protocol: protocol_api.ProtocolContext):
             else:
                 tips200 = tips
 
-        # PASTE ALL GROUP CODE HERE AND MODIFY MASTER MIX ADDITION ACCORDINGLY
+        last_size = 0
+        tip_attached = False
+        for group in grouped_wells:
+            keep_tips = False
+            group_size = len(group)
+            loc = tc_plate.wells_by_name()[group[-1]]
+            if group_size == 8:
+                loc = tc_plate.wells_by_name()[group[0]]
+            if group_size == last_size:
+                keep_tips = True
+            elif group_size == 1:
+                p50.configure_nozzle_layout(
+                    style=SINGLE,
+                    start="H1"
+                )
+                p200.configure_nozzle_layout(
+                    style=SINGLE,
+                    start="H1"
+                )
+            elif group_size == 8:
+                p50.configure_nozzle_layout(
+                    style=ALL
+                )
+                p200.configure_nozzle_layout(
+                    style=ALL
+                )
+            else:
+                last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
+                p50.configure_nozzle_layout(
+                    style=PARTIAL_COLUMN,
+                    start="H1",
+                    end=last
+                )
+                p200.configure_nozzle_layout(
+                    style=PARTIAL_COLUMN,
+                    start="H1",
+                    end=last
+                )
+            # Select primer pipette
             if master_mix_volume < 50:
                 master_pipette = p50
+                rack = tiprack50
+                tips = tips50
             else:
-                master_pipette = p200
+                primer_pipette = p200
+                rack = tiprack200
+                tips = tips200
 
-            master_pipette.pick_up_tip()
-            for c in tc_plate.columns()[:cols]:
-                c = c[0]
-                master_pipette.mix(1,master_mix_volume,master_mix)
-                master_pipette.aspirate(master_mix_volume, master_mix.top(-vol_to_height(mm1)))
-                master_pipette.dispense(master_mix_volume, c.top())
-                mm1 -= 8 * 0.001 * master_mix_volume                     
-            master_pipette.drop_tip()
+            # Pick up a different number of tips if needed
+            if not keep_tips:
+                if tip_attached:
+                    master_pipette.drop_tip()
+                tip_loc , tips = smart_pick_up(group_size, tips)
+                master_pipette.pick_up_tip(rack.wells_by_name()[tip_loc])
+                tip_attached = True
+
+            # Add master mix with dNTPs to PCR plate
+            master_pipette.aspirate(master_mix_volume,master_mix.top(-vol_to_height(p1)))
+            master_pipette.dispense(master_mix_volume,loc.top())
+            mm1 -= group_size * 0.001 * master_mix_volume
+
+            primer_pipette.drop_tip()
+            last_size = group_size
+
+    
     else:
         pass
         
