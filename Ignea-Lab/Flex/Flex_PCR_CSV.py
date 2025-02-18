@@ -448,6 +448,7 @@ def group_wells(unique_wells):
     '''Inputs: unique_wells (list), Outputs: grouped_wells (list of lists)
     Groups wells into vertically adjacent groups and returns them in a list ordered by size'''
     # Sort wells in ascending order
+    '''ValueError [line 451]: invalid literal for int() with base 10: '1 of Opentrons Tough 96 Well Plate 200 µL PCR Full Skirt on slot C2'''
     unique_wells.sort(key=lambda x: (ord(x[0]), int(x[1:])))
 
     grouped_wells = []
