@@ -1,7 +1,7 @@
 # imports
 from opentrons import protocol_api
 from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
-import csv
+from typing import List, Dict, Tuple, Set, Optional, Any
 
 
 # metadata
@@ -170,311 +170,157 @@ def add_parameters(parameters: protocol_api.Parameters):
         default = False
     )
 
-def run(protocol: protocol_api.ProtocolContext):
-
-    # PCR parameters
-    well_csv = protocol.params.well_csv
-    sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
-    master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
-    primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL. Depending on primers_loaded it might be pre-loaded or might be added by the robot
-    denaturation_temp = protocol.params.denaturation_temp
-    initial_denaturation_time_seconds = protocol.params.init_denaturation_time
-    denaturation_time_seconds = protocol.params.denaturation_time
-    annealing_temp = protocol.params.annealing_temp
-    annealing_time_seconds = protocol.params.annealing_time
-    extension_temp = protocol.params.extension_temp
-    extension_time_seconds = protocol.params.extension_time
-    final_extension_time_seconds = protocol.params.final_extension_time
-    num_cycles = protocol.params.num_cycles
-    primers_loaded = protocol.params.primers_loaded # Set to True if the appropriate primer is already in each well (aplicable if different primers are being used in each sample)
-    # Otherwise, the robot will load the same primers in each well
-    colony_pcr = protocol.params.colony_pcr # Set to True for Colony PCR
-    # The following parameters are applicable if colony PCR is set to True
-    lysis_temp = protocol.params.lysis_temp
-    lysis_time_seconds = protocol.params.lysis_time
-    debug = protocol.params.debug
-
-    # Labware definitions
-    # Thermocycler simulataneously occupies A1 and B1
-    chute = protocol.load_waste_chute()
-    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
-    tips50 = None
-    tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    tips200 = None
-    res = protocol.load_labware('nest_12_reservoir_15ml','C1')
-    tc_mod = protocol.load_module('thermocyclerModuleV2')
-    tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
-
-    # Pipettes
-    p50 = protocol.load_instrument(
-        'flex_8channel_50', 'left')
-    p200 = protocol.load_instrument(
-        'flex_8channel_1000', 'right')
-    pcr_volume = sample_volume + master_mix_volume + primer_volume
-    master_mix = res.wells_by_name()['A1']
-    primers = res.wells_by_name()['A2']
-    p1 = 4
-    mm1 = 4
-
-    # Thermocycling program definition
-    pcr_program = [
-        {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},   # Denaturation
-        {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},   # Annealing
-        {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},   # Extension
-    ]
-    # Commands
-    tc_mod.open_lid()
-
-    if not debug:
-        well_data = well_csv.parse_as_csv()
-        sample_columns, sample_rows, sample_wells = add_locations(well_data)
-
-        # Define wells and remove duplicates
-        destination_wells = []
-        for col in sample_columns:
-           destination_wells.extend(tc_plate.columns_by_name()[col])
-        for row in sample_rows:
-           destination_wells.extend(tc_plate.rows_by_name()[row])
-        destination_wells.extend([tc_plate.wells_by_name()[well] for well in sample_wells])
-        # Initialize an empty dictionary to track occurrences
-        occurrences = {}
-        # Initialize an empty list to store the unique wells
-        unique_wells = []
-        for well in destination_wells:
-           # Convert the well object to a string to use it as a dictionary key
-           well_str = str(well)
-           if well_str not in occurrences:
-               # If the well is not in the dictionary, add it to unique_wells
-               unique_wells.append(well_str)
-               # And add it to the dictionary
-               occurrences[well_str] = True
-           else:
-                # If the well is already in the dictionary, it's a duplicate
-                protocol.comment(f"Duplicate location found and removed: {well_str}")
-        # Replace destination_wells with the list of unique wells
-        destination_wells = unique_wells
-
-        # Group wells and sort them by size
-        grouped_wells = group_wells(unique_wells)
-
-        # Go through groups and adjust the pipette settings
-        last_size = 0
-        tip_attached = False
-        if not primers_loaded:
-            for group in grouped_wells:
-                keep_tips = False
-                group_size = len(group)
-                loc = tc_plate.wells_by_name()[group[-1]]
-                if group_size == 8:
-                    loc = tc_plate.wells_by_name()[group[0]]
-                if group_size == last_size:
-                    keep_tips = True
-                elif group_size == 1:
-                    p50.configure_nozzle_layout(
-                        style=SINGLE,
-                        start="H1"
-                    )
-                    p200.configure_nozzle_layout(
-                        style=SINGLE,
-                        start="H1"
-                    )
-                elif group_size == 8:
-                    p50.configure_nozzle_layout(
-                        style=ALL
-                    )
-                    p200.configure_nozzle_layout(
-                        style=ALL
-                    )
-                else:
-                    last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
-                    p50.configure_nozzle_layout(
-                        style=PARTIAL_COLUMN,
-                        start="H1",
-                        end=last
-                    )
-                    p200.configure_nozzle_layout(
-                        style=PARTIAL_COLUMN,
-                        start="H1",
-                        end=last
-                    )
-                # Select primer pipette
-                if primer_volume < 50:
-                    primer_pipette = p50
-                    rack = tiprack50
-                    tips = tips50
-                else:
-                    primer_pipette = p200
-                    rack = tiprack200
-                    tips = tips200
-
-                # Pick up a different number of tips if needed
-                if not keep_tips:
-                    if tip_attached:
-                        primer_pipette.drop_tip()
-                    tip_loc , tips = smart_pick_up(group_size, tips)
-                    primer_pipette.pick_up_tip(rack.wells_by_name()[tip_loc])
-                    tip_attached = True
-
-                # Add primers to PCR plate
-                primer_pipette.aspirate(primer_volume,primers.top(-vol_to_height(p1)))
-                primer_pipette.dispense(primer_volume,loc.top())
-                p1 -= group_size * 0.001 * primer_volume
-
-                primer_pipette.drop_tip()
-                last_size = group_size
-            
-            # Update available tip data
-            if primer_volume < 50:
-                tips50 = tips
-            else:
-                tips200 = tips
-
-        last_size = 0
-        tip_attached = False
-        for group in grouped_wells:
-            keep_tips = False
-            group_size = len(group)
-            loc = tc_plate.wells_by_name()[group[-1]]
-            if group_size == 8:
-                loc = tc_plate.wells_by_name()[group[0]]
-            if group_size == last_size:
-                keep_tips = True
-            elif group_size == 1:
-                p50.configure_nozzle_layout(
-                    style=SINGLE,
-                    start="H1"
-                )
-                p200.configure_nozzle_layout(
-                    style=SINGLE,
-                    start="H1"
-                )
-            elif group_size == 8:
-                p50.configure_nozzle_layout(
-                    style=ALL
-                )
-                p200.configure_nozzle_layout(
-                    style=ALL
-                )
-            else:
-                last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
-                p50.configure_nozzle_layout(
-                    style=PARTIAL_COLUMN,
-                    start="H1",
-                    end=last
-                )
-                p200.configure_nozzle_layout(
-                    style=PARTIAL_COLUMN,
-                    start="H1",
-                    end=last
-                )
-            # Select primer pipette
-            if master_mix_volume < 50:
-                master_pipette = p50
-                rack = tiprack50
-                tips = tips50
-            else:
-                primer_pipette = p200
-                rack = tiprack200
-                tips = tips200
-
-            # Pick up a different number of tips if needed
-            if not keep_tips:
-                if tip_attached:
-                    master_pipette.drop_tip()
-                tip_loc , tips = smart_pick_up(group_size, tips)
-                master_pipette.pick_up_tip(rack.wells_by_name()[tip_loc])
-                tip_attached = True
-
-            # Add master mix with dNTPs to PCR plate
-            master_pipette.aspirate(master_mix_volume,master_mix.top(-vol_to_height(p1)))
-            master_pipette.dispense(master_mix_volume,loc.top())
-            mm1 -= group_size * 0.001 * master_mix_volume
-
-            primer_pipette.drop_tip()
-            last_size = group_size
-
+# Utility functions
+def vol_to_height(vol: float) -> float:
+    '''
+    Converts volume of liquid to appropriate pipette depth.
     
-    else:
-        pass
+    Args:
+        vol: Volume of liquid in mL
         
-
-    if not debug:
-        protocol.move_labware(
-        labware=tc_plate, new_location=tc_mod, use_gripper=True
-    )
-        # Run thermocycler
-        protocol.comment("Running thermocycler...")
-        tc_mod.close_lid()
-        tc_mod.set_lid_temperature(105)
-        if colony_pcr:
-            tc_mod.set_block_temperature(temperature=lysis_temp,hold_time_seconds=lysis_time_seconds,block_max_volume=pcr_volume)
-        tc_mod.set_block_temperature(temperature=denaturation_temp,hold_time_seconds= initial_denaturation_time_seconds, block_max_volume=pcr_volume) # Initial denaturation
-        tc_mod.execute_profile(steps=pcr_program, repetitions=num_cycles, block_max_volume=pcr_volume)
-        tc_mod.set_block_temperature(temperature=extension_temp, hold_time_seconds= final_extension_time_seconds, block_max_volume=pcr_volume) # Final extension
-        tc_mod.deactivate_lid()
-        tc_mod.open_lid()
-        tc_mod.set_block_temperature(4)
-    
-
-def vol_to_height(vol):
-    '''Inputs: vol(float), Outputs: depth (float)
-    Takes the volume of liquid in a container in mL and outputs
-    the appropriate pipette depth in mm for that container'''
+    Returns:
+        Appropriate pipette depth in mm
+    '''
     full_depth = 40
     if vol > 0:
         return round(-2.6*vol + full_depth)
     else:
         return full_depth
 
-def add_locations(list):
-    '''Extractes the location data from Opentrons' parse_as_csv() method
-    and outputs three lists'''
-    # Define sample locations by column, row and/or well in a csv file
-    sample_columns = [] # eg. ['1', '2']
-    sample_rows = [] # eg. ['A', 'B']
-    sample_wells = [] # eg. ['A1', 'B1']
-    for row in list[1:]:
+def extract_well_name(well_str: str) -> str:
+    '''
+    Extracts the well name (e.g., "A1") from a well string that might contain
+    additional information.
+    
+    Args:
+        well_str: Well string that might contain additional information
+        
+    Returns:
+        Clean well name (e.g., "A1")
+    '''
+    # Extract just the well name (e.g., "A1") from the string
+    return well_str.split()[0]
+
+def parse_csv_locations(csv_data: List[List[str]]) -> Tuple[List[str], List[str], List[str]]:
+    '''
+    Extracts location data from parsed CSV.
+    
+    Args:
+        csv_data: Data from the CSV file parsed with parse_as_csv()
+        
+    Returns:
+        Tuple of lists containing columns, rows, and individual wells
+    '''
+    sample_columns = []  # eg. ['1', '2']
+    sample_rows = []     # eg. ['A', 'B']
+    sample_wells = []    # eg. ['A1', 'B1']
+    
+    # Skip header row
+    for row in csv_data[1:]:
         for i in range(3):
-           if len(row[i]) != 0:
+            if i < len(row) and len(row[i]) != 0:
                 if i == 0:
                     sample_columns.append(row[i])
                 elif i == 1:
                     sample_rows.append(row[i])
                 elif i == 2:
                     sample_wells.append(row[i])
+                    
     return sample_columns, sample_rows, sample_wells
 
-def group_wells(unique_wells):
-    '''Inputs: unique_wells (list), Outputs: grouped_wells (list of lists)
-    Groups wells into vertically adjacent groups and returns them in a list ordered by size'''
-    # Sort wells in ascending order
-    '''ValueError [line 451]: invalid literal for int() with base 10: '1 of Opentrons Tough 96 Well Plate 200 µL PCR Full Skirt on slot C2'''
-    unique_wells.sort(key=lambda x: (ord(x[0]), int(x[1:])))
-
-    grouped_wells = []
+def get_unique_wells(protocol, tc_plate, columns, rows, wells) -> List[str]:
+    '''
+    Creates a list of unique well names from columns, rows, and individual wells.
     
-    for well in unique_wells:
-        if not grouped_wells:
-            grouped_wells.append([well])
+    Args:
+        protocol: Protocol context for logging
+        tc_plate: The labware containing the wells
+        columns: List of column indices
+        rows: List of row indices
+        wells: List of individual well names
+        
+    Returns:
+        List of unique well names
+    '''
+    # Get all wells from the specified columns and rows
+    destination_wells = []
+    for col in columns:
+        destination_wells.extend(tc_plate.columns_by_name()[col])
+    for row in rows:
+        destination_wells.extend(tc_plate.rows_by_name()[row])
+    destination_wells.extend([tc_plate.wells_by_name()[well] for well in wells])
+    
+    # Remove duplicates
+    unique_wells_dict = {}
+    unique_wells = []
+    
+    for well in destination_wells:
+        well_str = str(well)
+        if well_str not in unique_wells_dict:
+            unique_wells.append(extract_well_name(well_str))
+            unique_wells_dict[well_str] = True
         else:
-            added = False
-            for group in grouped_wells:
-                last_well = group[-1]
-                # Check if the current well is vertically adjacent to the last well in the group
-                if ord(well[0]) - ord(last_well[0]) == 1 and int(well[1:]) == int(last_well[1:]):
-                    group.append(well)
-                    added = True
-                    break
-            if not added:
-                grouped_wells.append([well])
+            protocol.comment(f"Duplicate location found and removed: {well_str}")
+            
+    return unique_wells
+
+def group_wells(unique_wells: List[str]) -> List[List[str]]:
+    '''
+    Groups wells into vertically adjacent groups and sorts them by size.
     
-    grouped_wells.sort(key=lambda group: len(group), reverse=True)
-    return grouped_wells
+    Args:
+        unique_wells: List of well names (e.g., ["A1", "B1", "C1"])
+        
+    Returns:
+        List of well groups, sorted by size (largest first)
+    '''
+    # Sort wells by column, then by row
+    sorted_wells = sorted(unique_wells, key=lambda x: (int(x[1:]), ord(x[0])))
+    
+    grouped_wells = []
+    current_group = []
+    
+    for i, well in enumerate(sorted_wells):
+        # Extract row letter and column number
+        row = well[0]
+        col = well[1:]
+        
+        # Start a new group or check if this well continues the current group
+        if not current_group:
+            current_group.append(well)
+        elif col == current_group[-1][1:] and ord(row) == ord(current_group[-1][0]) + 1:
+            # This well is in the same column and adjacent row as the last well
+            current_group.append(well)
+        else:
+            # This well is not adjacent, so start a new group
+            grouped_wells.append(current_group)
+            current_group = [well]
+    
+    # Add the last group if it exists
+    if current_group:
+        grouped_wells.append(current_group)
+    
+    # Sort groups by size (largest first)
+    return sorted(grouped_wells, key=len, reverse=True)
 
 class NotEnoughTips(Exception):
+    '''Exception raised when there aren't enough tips available.'''
     pass
 
-def smart_pick_up(size, tips=None):
+def smart_pick_up(size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[str, Dict[str, bool]]:
+    '''
+    Selects the appropriate tips based on the number needed.
+    
+    Args:
+        size: Number of tips needed
+        tips: Dictionary tracking available tips
+        
+    Returns:
+        Tuple of (tip location, updated tips dictionary)
+        
+    Raises:
+        NotEnoughTips: If there aren't enough tips available
+    '''
     if tips is None:
         tips = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
 
@@ -511,3 +357,226 @@ def smart_pick_up(size, tips=None):
 
     raise NotEnoughTips("Not enough tips available")
 
+def configure_pipette_for_group(pipette, group_size: int, last_size: int):
+    '''
+    Configures the pipette nozzle layout based on the group size.
+    
+    Args:
+        pipette: Pipette instrument to configure
+        group_size: Size of the current well group
+        last_size: Size of the previous well group
+        
+    Returns:
+        tuple: (keep_tips flag, updated last_size)
+    '''
+    keep_tips = (group_size == last_size)
+    
+    if not keep_tips:
+        if group_size == 1:
+            pipette.configure_nozzle_layout(
+                style=SINGLE,
+                start="H1"
+            )
+        elif group_size == 8:
+            pipette.configure_nozzle_layout(
+                style=ALL
+            )
+        else:
+            last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
+            pipette.configure_nozzle_layout(
+                style=PARTIAL_COLUMN,
+                start="H1",
+                end=last
+            )
+    
+    return keep_tips, group_size
+
+def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tips, 
+                      solution_well, volume, height_tracker):
+    '''
+    Dispenses solution from a reservoir to wells in the PCR plate.
+    
+    Args:
+        protocol: Protocol context
+        tc_plate: PCR plate labware
+        grouped_wells: Grouped well locations
+        pipette: Pipette to use
+        tips_rack: Tip rack to use
+        tips: Dictionary of available tips
+        solution_well: Source well for the solution
+        volume: Volume to dispense
+        height_tracker: Tracker for liquid height in the source well
+        
+    Returns:
+        Updated tips dictionary and height tracker
+    '''
+    last_size = 0
+    tip_attached = False
+    
+    for group in grouped_wells:
+        group_size = len(group)
+        # Determine the location to dispense to
+        loc = tc_plate.wells_by_name()[group[-1]]
+        if group_size == 8:
+            loc = tc_plate.wells_by_name()[group[0]]
+        
+        # Configure pipette based on group size
+        keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
+        
+        # Pick up tips if needed
+        if not keep_tips:
+            if tip_attached:
+                pipette.drop_tip()
+            tip_loc, tips = smart_pick_up(group_size, tips)
+            pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
+            tip_attached = True
+        
+        # Dispense the solution
+        pipette.aspirate(volume, solution_well.top(-vol_to_height(height_tracker)))
+        pipette.dispense(volume, loc.top())
+        height_tracker -= group_size * 0.001 * volume
+        
+        # Drop the tip
+        pipette.drop_tip()
+    
+    return tips, height_tracker
+
+def run(protocol: protocol_api.ProtocolContext):
+    # Get PCR parameters from runtime inputs
+    well_csv = protocol.params.well_csv
+    sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
+    master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
+    primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL
+    primers_loaded = protocol.params.primers_loaded # If True, primers are already loaded in each well
+    denaturation_temp = protocol.params.denaturation_temp
+    initial_denaturation_time_seconds = protocol.params.init_denaturation_time
+    denaturation_time_seconds = protocol.params.denaturation_time
+    annealing_temp = protocol.params.annealing_temp
+    annealing_time_seconds = protocol.params.annealing_time
+    extension_temp = protocol.params.extension_temp
+    extension_time_seconds = protocol.params.extension_time
+    final_extension_time_seconds = protocol.params.final_extension_time
+    num_cycles = protocol.params.num_cycles
+    colony_pcr = protocol.params.colony_pcr
+    lysis_temp = protocol.params.lysis_temp
+    lysis_time_seconds = protocol.params.lysis_time
+    debug = protocol.params.debug
+
+    # Load labware
+    chute = protocol.load_waste_chute()
+    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
+    tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
+    res = protocol.load_labware('nest_12_reservoir_15ml','C1')
+    tc_mod = protocol.load_module('thermocyclerModuleV2')
+    tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
+
+    # Load pipettes
+    p50 = protocol.load_instrument('flex_8channel_50', 'left')
+    p200 = protocol.load_instrument('flex_8channel_1000', 'right')
+    
+    # Define reagent locations and volumes
+    pcr_volume = sample_volume + master_mix_volume + primer_volume
+    master_mix = res.wells_by_name()['A1']
+    primers = res.wells_by_name()['A2']
+    
+    # Initialize liquid height trackers
+    primer_height_tracker = 4  # mL
+    master_mix_height_tracker = 4  # mL
+    
+    # Initialize tip tracking
+    tips50 = None
+    tips200 = None
+
+    # Define thermocycling program
+    pcr_program = [
+        {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},
+        {'temperature': annealing_temp, 'hold_time_seconds': annealing_time_seconds},
+        {'temperature': extension_temp, 'hold_time_seconds': extension_time_seconds},
+    ]
+
+    # Open the thermocycler lid
+    tc_mod.open_lid()
+
+    if not debug:
+        # Parse CSV data for well locations
+        csv_data = well_csv.parse_as_csv()
+        sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
+        
+        # Get unique wells and group them
+        unique_wells = get_unique_wells(protocol, tc_plate, sample_columns, sample_rows, sample_wells)
+        grouped_wells = group_wells(unique_wells)
+        
+        # Dispense primers if not pre-loaded
+        if not primers_loaded:
+            # Select appropriate pipette based on volume
+            primer_pipette = p50 if primer_volume < 50 else p200
+            primer_rack = tiprack50 if primer_volume < 50 else tiprack200
+            primer_tips = tips50 if primer_volume < 50 else tips200
+            
+            # Dispense primers
+            primer_tips, primer_height_tracker = dispense_solution(
+                protocol, tc_plate, grouped_wells, primer_pipette, 
+                primer_rack, primer_tips, primers, primer_volume, primer_height_tracker
+            )
+            
+            # Update tip tracking
+            if primer_volume < 50:
+                tips50 = primer_tips
+            else:
+                tips200 = primer_tips
+        
+        # Select appropriate pipette for master mix
+        master_pipette = p50 if master_mix_volume < 50 else p200
+        master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
+        master_tips = tips50 if master_mix_volume < 50 else tips200
+        
+        # Dispense master mix
+        master_tips, master_mix_height_tracker = dispense_solution(
+            protocol, tc_plate, grouped_wells, master_pipette,
+            master_rack, master_tips, master_mix, master_mix_volume, master_mix_height_tracker
+        )
+    
+    # Move PCR plate to thermocycler and run program
+    if not debug:
+        protocol.move_labware(
+            labware=tc_plate, new_location=tc_mod, use_gripper=True
+        )
+        
+        # Run thermocycler
+        protocol.comment("Running thermocycler...")
+        tc_mod.close_lid()
+        tc_mod.set_lid_temperature(105)
+        
+        # Colony PCR lysis step if applicable
+        if colony_pcr:
+            tc_mod.set_block_temperature(
+                temperature=lysis_temp,
+                hold_time_seconds=lysis_time_seconds,
+                block_max_volume=pcr_volume
+            )
+        
+        # Initial denaturation
+        tc_mod.set_block_temperature(
+            temperature=denaturation_temp,
+            hold_time_seconds=initial_denaturation_time_seconds, 
+            block_max_volume=pcr_volume
+        )
+        
+        # PCR cycles
+        tc_mod.execute_profile(
+            steps=pcr_program, 
+            repetitions=num_cycles, 
+            block_max_volume=pcr_volume
+        )
+        
+        # Final extension
+        tc_mod.set_block_temperature(
+            temperature=extension_temp, 
+            hold_time_seconds=final_extension_time_seconds, 
+            block_max_volume=pcr_volume
+        )
+        
+        # Cool down and open lid
+        tc_mod.deactivate_lid()
+        tc_mod.open_lid()
+        tc_mod.set_block_temperature(4)
