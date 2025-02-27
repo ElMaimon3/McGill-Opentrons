@@ -8,9 +8,10 @@ from typing import List, Dict, Tuple, Set, Optional, Any
 metadata = {
     'protocolName': 'Customizable PCR (CSV)',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
-    'description': '''Fully customizable PCR for the Openteons Flex
-    with template DNA pre loaded on the PCR plate. Depending on the use 
-    case, primers have to be manually added to each sample or left in the reservoir'''
+    'description': '''Fully customizable PCR for the Opentrons Flex.
+    The protocol allows you to specify which components (template DNA, primers) 
+    are the same across all samples and which are different. The robot will add 
+    components that are the same, while different components must be added manually.'''
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
@@ -19,155 +20,175 @@ requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 def add_parameters(parameters: protocol_api.Parameters):
     parameters.add_csv_file(
         variable_name="well_csv",
-        display_name="PCR loactions csv",
+        display_name="PCR locations csv",
         description=(
             "Table with three columns:"
             " rows (e.g. 1), columns (e.g. B)"
             " and wells (e.g. B1)"
         )
     )
-    parameters.add_int(
-        variable_name = "sample_volume",
-        display_name = "Sample Volume",
-        description = "The volume of template DNA (or colony for colony PCR)",
-        default = 1,
-        minimum = 1,
-        maximum = 25,
-        unit = "µL"
-    )
-    parameters.add_int(
-        variable_name = "master_volume",
-        display_name = "Master Mix Volume",
-        description = "The volume of master mix to add to each sample",
-        default = 20,
-        minimum = 10,
-        maximum = 100,
-        unit = "µL"
+    
+    # Configuration parameters for what's consistent vs variable
+    parameters.add_bool(
+        variable_name="same_template_dna",
+        display_name="Same Template DNA",
+        description="Enable if all samples use the same template DNA (robot will add it)",
+        default=False
     )
     parameters.add_bool(
-        variable_name = "primers_loaded",
-        display_name = "Primers Loaded in each sample",
-        description = "Turn on if you need different primers for eaach sample. In this case, you must add them by hand",
-        default = False
+        variable_name="same_primers",
+        display_name="Same Primers",
+        description="Enable if all samples use the same primers (robot will add them)",
+        default=True
+    )
+    
+    # Template DNA parameters
+    parameters.add_int(
+        variable_name="template_dna_volume",
+        display_name="Template DNA Volume",
+        description="Volume of template DNA per sample",
+        default=1,
+        minimum=1,
+        maximum=25,
+        unit="µL"
+    )
+    
+    # Master mix parameters
+    parameters.add_int(
+        variable_name="master_volume",
+        display_name="Master Mix Volume",
+        description="Volume of master mix to add to each sample",
+        default=20,
+        minimum=10,
+        maximum=100,
+        unit="µL"
+    )
+    
+    # Primer parameters
+    parameters.add_int(
+        variable_name="primer_volume",
+        display_name="Primer Volume",
+        description="Volume of primers for each sample",
+        default=20,
+        minimum=5,
+        maximum=30,
+        unit="µL"
+    )
+    
+    # Thermocycler parameters
+    parameters.add_int(
+        variable_name="denaturation_temp",
+        display_name="Denaturation Temperature",
+        description="",
+        default=98,
+        minimum=4,
+        maximum=99,
+        unit="Celsius"
     )
     parameters.add_int(
-        variable_name = "primer_volume",
-        display_name = "Primer Volume",
-        description = "The volume of primers for each sample. Either added by robot or pre loaded",
-        default = 20,
-        minimum = 5,
-        maximum = 30,
-        unit = "µL"
+        variable_name="annealing_temp",
+        display_name="Annealing Temperature",
+        description="",
+        default=63,
+        minimum=4,
+        maximum=99,
+        unit="Celsius"
     )
     parameters.add_int(
-        variable_name = "denaturation_temp",
-        display_name = "Denaturation Temperature",
-        description = "",
-        default = 98,
-        minimum = 4,
-        maximum = 99,
-        unit = "Celsius"
+        variable_name="extension_temp",
+        display_name="Extension Temperature",
+        description="",
+        default=72,
+        minimum=4,
+        maximum=99,
+        unit="Celsius"
     )
     parameters.add_int(
-        variable_name = "annealing_temp",
-        display_name = "Annealing Temperature",
-        description = "",
-        default = 63,
-        minimum = 4,
-        maximum = 99,
-        unit = "Celsius"
+        variable_name="init_denaturation_time",
+        display_name="Initial Denaturation Time",
+        description="",
+        default=15,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
     parameters.add_int(
-        variable_name = "extension_temp",
-        display_name = "Extension Temperature",
-        description = "",
-        default = 72,
-        minimum = 4,
-        maximum = 99,
-        unit = "Celsius"
+        variable_name="denaturation_time",
+        display_name="Denaturation Time",
+        description="For each cycle",
+        default=30,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
     parameters.add_int(
-        variable_name = "init_denaturation_time",
-        display_name = "Initial Denaturation Time",
-        description = "",
-        default = 15,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
+        variable_name="annealing_time",
+        display_name="Annealing Time",
+        description="For each cycle",
+        default=20,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
     parameters.add_int(
-        variable_name = "denaturation_time",
-        display_name = "Denaturation Time",
-        description = "For each cycle",
-        default = 30,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
+        variable_name="extension_time",
+        display_name="Extension Time",
+        description="For each cycle",
+        default=210,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
     parameters.add_int(
-        variable_name = "annealing_time",
-        display_name = "Annealing Time",
-        description = "For each cycle",
-        default = 20,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
+        variable_name="final_extension_time",
+        display_name="Final Extension Time",
+        description="",
+        default=120,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
     parameters.add_int(
-        variable_name = "extension_time",
-        display_name = "Extension Time",
-        description = "For each cycle",
-        default = 210,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
+        variable_name="num_cycles",
+        display_name="Number of cycles",
+        description="",
+        default=30,
+        minimum=1,
+        maximum=150
     )
-    parameters.add_int(
-        variable_name = "final_extension_time",
-        display_name = "Final Extension Time",
-        description = "",
-        default = 120,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
-    )
-    parameters.add_int(
-        variable_name = "num_cycles",
-        display_name = "Number of cycles",
-        description = "",
-        default = 30,
-        minimum = 1,
-        maximum = 150
-    )
+    
+    # Colony PCR parameters
     parameters.add_bool(
-        variable_name = "colony_pcr",
-        display_name = "Colony PCR",
-        description = "",
-        default = False
+        variable_name="colony_pcr",
+        display_name="Colony PCR",
+        description="Enable if performing Colony PCR",
+        default=False
     )
     parameters.add_int(
-        variable_name = "lysis_temp",
-        display_name = "Lysis Temperature",
-        description = "For colony PCR",
-        default = 98,
-        minimum = 4,
-        maximum = 99,
-        unit = "Celsius"
+        variable_name="lysis_temp",
+        display_name="Lysis Temperature",
+        description="For colony PCR",
+        default=98,
+        minimum=4,
+        maximum=99,
+        unit="Celsius"
     )
     parameters.add_int(
-        variable_name = "lysis_time",
-        display_name = "Lysis Time",
-        description = "For colony PCR",
-        default = 600,
-        minimum = 1,
-        maximum = 999,
-        unit = "Seconds"
+        variable_name="lysis_time",
+        display_name="Lysis Time",
+        description="For colony PCR",
+        default=600,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
     )
+    
+    # Debug mode
     parameters.add_bool(
-        variable_name = "debug",
-        display_name = "Debugging Mode",
-        description = "",
-        default = False
+        variable_name="debug",
+        display_name="Debugging Mode",
+        description="Run in simulation mode only",
+        default=False
     )
 
 # Utility functions
@@ -392,7 +413,7 @@ def configure_pipette_for_group(pipette, group_size: int, last_size: int):
     return keep_tips, group_size
 
 def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tips, 
-                      solution_well, volume, height_tracker):
+                      solution_well, volume, height_tracker, solution_name="solution"):
     '''
     Dispenses solution from a reservoir to wells in the PCR plate.
     
@@ -406,10 +427,13 @@ def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tip
         solution_well: Source well for the solution
         volume: Volume to dispense
         height_tracker: Tracker for liquid height in the source well
+        solution_name: Name of the solution (for logging)
         
     Returns:
         Updated tips dictionary and height tracker
     '''
+    protocol.comment(f"Adding {volume} µL of {solution_name} to each sample")
+    
     last_size = 0
     tip_attached = False
     
@@ -444,10 +468,11 @@ def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tip
 def run(protocol: protocol_api.ProtocolContext):
     # Get PCR parameters from runtime inputs
     well_csv = protocol.params.well_csv
-    sample_volume = protocol.params.sample_volume # Volume of sample loaded in each well, uL
-    master_mix_volume = protocol.params.master_volume # Volume of master mix to add to each well, uL
-    primer_volume = protocol.params.primer_volume # Volume of primers for each well, uL
-    primers_loaded = protocol.params.primers_loaded # If True, primers are already loaded in each well
+    same_template_dna = protocol.params.same_template_dna
+    same_primers = protocol.params.same_primers
+    template_dna_volume = protocol.params.template_dna_volume
+    master_mix_volume = protocol.params.master_volume
+    primer_volume = protocol.params.primer_volume
     denaturation_temp = protocol.params.denaturation_temp
     initial_denaturation_time_seconds = protocol.params.init_denaturation_time
     denaturation_time_seconds = protocol.params.denaturation_time
@@ -462,6 +487,13 @@ def run(protocol: protocol_api.ProtocolContext):
     lysis_time_seconds = protocol.params.lysis_time
     debug = protocol.params.debug
 
+    # Calculate volumes
+    total_volume = master_mix_volume
+    if same_template_dna:
+        total_volume += template_dna_volume
+    if same_primers:
+        total_volume += primer_volume
+
     # Load labware
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
@@ -474,13 +506,14 @@ def run(protocol: protocol_api.ProtocolContext):
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
     p200 = protocol.load_instrument('flex_8channel_1000', 'right')
     
-    # Define reagent locations and volumes
-    pcr_volume = sample_volume + master_mix_volume + primer_volume
+    # Define reagent locations and volumes - now specified by position
     master_mix = res.wells_by_name()['A1']
-    primers = res.wells_by_name()['A2']
+    template_dna = res.wells_by_name()['A2']
+    primers = res.wells_by_name()['A3']
     
     # Initialize liquid height trackers
     primer_height_tracker = 4  # mL
+    template_height_tracker = 4  # mL
     master_mix_height_tracker = 4  # mL
     
     # Initialize tip tracking
@@ -497,6 +530,22 @@ def run(protocol: protocol_api.ProtocolContext):
     # Open the thermocycler lid
     tc_mod.open_lid()
 
+    # Print setup information for the user
+    protocol.comment("=== PCR SETUP INFORMATION ===")
+    protocol.comment(f"Master Mix: {master_mix_volume} µL (Robot will add to all samples)")
+    
+    if same_template_dna:
+        protocol.comment(f"Template DNA: {template_dna_volume} µL (Robot will add to all samples)")
+    else:
+        protocol.comment(f"Template DNA: {template_dna_volume} µL (Must be added manually to each sample)")
+        
+    if same_primers:
+        protocol.comment(f"Primers: {primer_volume} µL (Robot will add to all samples)")
+    else:
+        protocol.comment(f"Primers: {primer_volume} µL (Must be added manually to each sample)")
+    
+    protocol.comment("===========================")
+
     if not debug:
         # Parse CSV data for well locations
         csv_data = well_csv.parse_as_csv()
@@ -506,17 +555,53 @@ def run(protocol: protocol_api.ProtocolContext):
         unique_wells = get_unique_wells(protocol, tc_plate, sample_columns, sample_rows, sample_wells)
         grouped_wells = group_wells(unique_wells)
         
-        # Dispense primers if not pre-loaded
-        if not primers_loaded:
-            # Select appropriate pipette based on volume
+        # Add solutions that are the same across all samples
+        
+        # 1. Always add master mix
+        master_pipette = p50 if master_mix_volume < 50 else p200
+        master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
+        master_tips = tips50 if master_mix_volume < 50 else tips200
+        
+        master_tips, master_mix_height_tracker = dispense_solution(
+            protocol, tc_plate, grouped_wells, master_pipette,
+            master_rack, master_tips, master_mix, master_mix_volume, 
+            master_mix_height_tracker, "master mix"
+        )
+        
+        # Update tip tracking
+        if master_mix_volume < 50:
+            tips50 = master_tips
+        else:
+            tips200 = master_tips
+        
+        # 2. Add template DNA if it's the same for all samples
+        if same_template_dna:
+            template_pipette = p50 if template_dna_volume < 50 else p200
+            template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
+            template_tips = tips50 if template_dna_volume < 50 else tips200
+            
+            template_tips, template_height_tracker = dispense_solution(
+                protocol, tc_plate, grouped_wells, template_pipette,
+                template_rack, template_tips, template_dna, template_dna_volume, 
+                template_height_tracker, "template DNA"
+            )
+            
+            # Update tip tracking
+            if template_dna_volume < 50:
+                tips50 = template_tips
+            else:
+                tips200 = template_tips
+        
+        # 3. Add primers if they're the same for all samples
+        if same_primers:
             primer_pipette = p50 if primer_volume < 50 else p200
             primer_rack = tiprack50 if primer_volume < 50 else tiprack200
             primer_tips = tips50 if primer_volume < 50 else tips200
             
-            # Dispense primers
             primer_tips, primer_height_tracker = dispense_solution(
-                protocol, tc_plate, grouped_wells, primer_pipette, 
-                primer_rack, primer_tips, primers, primer_volume, primer_height_tracker
+                protocol, tc_plate, grouped_wells, primer_pipette,
+                primer_rack, primer_tips, primers, primer_volume, 
+                primer_height_tracker, "primers"
             )
             
             # Update tip tracking
@@ -524,17 +609,17 @@ def run(protocol: protocol_api.ProtocolContext):
                 tips50 = primer_tips
             else:
                 tips200 = primer_tips
-        
-        # Select appropriate pipette for master mix
-        master_pipette = p50 if master_mix_volume < 50 else p200
-        master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
-        master_tips = tips50 if master_mix_volume < 50 else tips200
-        
-        # Dispense master mix
-        master_tips, master_mix_height_tracker = dispense_solution(
-            protocol, tc_plate, grouped_wells, master_pipette,
-            master_rack, master_tips, master_mix, master_mix_volume, master_mix_height_tracker
-        )
+                
+        # Pause to allow manual additions if needed
+        if not same_template_dna or not same_primers:
+            manual_additions = []
+            if not same_template_dna:
+                manual_additions.append(f"template DNA ({template_dna_volume} µL)")
+            if not same_primers:
+                manual_additions.append(f"primers ({primer_volume} µL)")
+                
+            manual_text = " and ".join(manual_additions)
+            protocol.pause(f"Please add {manual_text} to each sample manually, then resume.")
     
     # Move PCR plate to thermocycler and run program
     if not debug:
@@ -549,34 +634,39 @@ def run(protocol: protocol_api.ProtocolContext):
         
         # Colony PCR lysis step if applicable
         if colony_pcr:
+            protocol.comment(f"Running cell lysis at {lysis_temp}°C for {lysis_time_seconds} seconds")
             tc_mod.set_block_temperature(
                 temperature=lysis_temp,
                 hold_time_seconds=lysis_time_seconds,
-                block_max_volume=pcr_volume
+                block_max_volume=total_volume
             )
         
         # Initial denaturation
+        protocol.comment(f"Initial denaturation at {denaturation_temp}°C for {initial_denaturation_time_seconds} seconds")
         tc_mod.set_block_temperature(
             temperature=denaturation_temp,
             hold_time_seconds=initial_denaturation_time_seconds, 
-            block_max_volume=pcr_volume
+            block_max_volume=total_volume
         )
         
         # PCR cycles
+        protocol.comment(f"Running {num_cycles} PCR cycles")
         tc_mod.execute_profile(
             steps=pcr_program, 
             repetitions=num_cycles, 
-            block_max_volume=pcr_volume
+            block_max_volume=total_volume
         )
         
         # Final extension
+        protocol.comment(f"Final extension at {extension_temp}°C for {final_extension_time_seconds} seconds")
         tc_mod.set_block_temperature(
             temperature=extension_temp, 
             hold_time_seconds=final_extension_time_seconds, 
-            block_max_volume=pcr_volume
+            block_max_volume=total_volume
         )
         
         # Cool down and open lid
+        protocol.comment("PCR complete. Cooling down to 4°C")
         tc_mod.deactivate_lid()
         tc_mod.open_lid()
         tc_mod.set_block_temperature(4)
