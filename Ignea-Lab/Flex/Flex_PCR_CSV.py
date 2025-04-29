@@ -204,7 +204,7 @@ def vol_to_height(vol: float) -> float:
     '''
     full_depth = 42.8
     if vol > 0:
-        return round(-1.91636*vol + full_depth)
+        return round(-1.94545*vol + full_depth)
     else:
         return full_depth
 
@@ -523,7 +523,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Initialize liquid height trackers
     primer_height_tracker = 4  # mL
     template_height_tracker = 4  # mL
-    master_mix_height_tracker = 4  # mL
+    master_mix_height_tracker = 0.45  # mL
     
     # Initialize tip tracking
     tips50 = None
