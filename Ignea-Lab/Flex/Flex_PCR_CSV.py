@@ -621,7 +621,146 @@ def run(protocol: protocol_api.ProtocolContext):
             manual_text = " and ".join(manual_additions)
             protocol.pause(f"Please add {manual_text} to each sample manually, then resume.")
     else:
-        pass # CLAUDE WORK HERE
+        # Debug mode - Parse CSV and configure pipettes without dispensing
+        protocol.comment("=== DEBUG MODE ACTIVATED ===")
+        protocol.comment("This will simulate pipetting operations without dispensing liquids")
+        
+        # Parse CSV data for well locations (same as non-debug mode)
+        csv_data = well_csv.parse_as_csv()
+        sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
+        
+        # Get unique wells and group them (same as non-debug mode)
+        unique_wells = get_unique_wells(protocol, tc_plate, sample_columns, sample_rows, sample_wells)
+        grouped_wells = group_wells(unique_wells)
+        
+        protocol.comment(f"DEBUG: Found {len(unique_wells)} unique wells across {len(grouped_wells)} groups")
+        
+        # Define a debug version of dispensing function
+        def debug_simulate_solution_addition(protocol, tc_plate, grouped_wells, pipette, tips_rack, tips, 
+                                            solution_name="solution", volume=0):
+            '''
+            Debug version that simulates adding solution without actually dispensing.
+            '''
+            protocol.comment(f"DEBUG MODE: Simulating adding {volume} µL of {solution_name} to each sample")
+            
+            last_size = 0
+            tip_attached = False
+            
+            for group in grouped_wells:
+                group_size = len(group)
+                # Determine the location to dispense to
+                loc = tc_plate.wells_by_name()[group[-1]]
+                if group_size == 8:
+                    loc = tc_plate.wells_by_name()[group[0]]
+                
+                # Configure pipette based on group size
+                keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
+                protocol.comment(f"DEBUG: Configured pipette for group size {group_size}, wells: {', '.join(group)}")
+                
+                # Pick up tips if needed
+                if not keep_tips:
+                    if tip_attached:
+                        pipette.drop_tip()
+                        tip_attached = False
+                    tip_loc, tips = smart_pick_up(group_size, tips)
+                    pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
+                    tip_attached = True
+                    protocol.comment(f"DEBUG: Picked up {group_size} tips from {tip_loc}")
+                
+                # Simulate dispensing - move to position and delay
+                protocol.comment(f"DEBUG: Moving to position {loc} to simulate dispensing")
+                pipette.move_to(loc.top())
+                protocol.delay(seconds=1)  # Wait for 1 second to simulate dispensing
+                
+                # Drop the tip
+                protocol.comment(f"DEBUG: Dropping tips")
+                pipette.drop_tip()
+                tip_attached = False
+            
+            return tips
+        
+        # Initialize tip tracking 
+        tips50 = None
+        tips200 = None
+        
+        # 1. Simulate adding master mix
+        master_pipette = p50 if master_mix_volume < 50 else p200
+        master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
+        master_tips = tips50 if master_mix_volume < 50 else tips200
+        
+        master_tips = debug_simulate_solution_addition(
+            protocol, tc_plate, grouped_wells, master_pipette,
+            master_rack, master_tips, "master mix", master_mix_volume
+        )
+        
+        # Update tip tracking
+        if master_mix_volume < 50:
+            tips50 = master_tips
+        else:
+            tips200 = master_tips
+        
+        # 2. Simulate adding template DNA if it's the same for all samples
+        if same_template_dna:
+            template_pipette = p50 if template_dna_volume < 50 else p200
+            template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
+            template_tips = tips50 if template_dna_volume < 50 else tips200
+            
+            template_tips = debug_simulate_solution_addition(
+                protocol, tc_plate, grouped_wells, template_pipette,
+                template_rack, template_tips, "template DNA", template_dna_volume
+            )
+            
+            # Update tip tracking
+            if template_dna_volume < 50:
+                tips50 = template_tips
+            else:
+                tips200 = template_tips
+        
+        # 3. Simulate adding primers if they're the same for all samples
+        if same_primers:
+            primer_pipette = p50 if primer_volume < 50 else p200
+            primer_rack = tiprack50 if primer_volume < 50 else tiprack200
+            primer_tips = tips50 if primer_volume < 50 else tips200
+            
+            primer_tips = debug_simulate_solution_addition(
+                protocol, tc_plate, grouped_wells, primer_pipette,
+                primer_rack, primer_tips, "primers", primer_volume
+            )
+            
+            # Update tip tracking
+            if primer_volume < 50:
+                tips50 = primer_tips
+            else:
+                tips200 = primer_tips
+        
+        # Simulate pause for manual additions if needed
+        if not same_template_dna or not same_primers:
+            manual_additions = []
+            if not same_template_dna:
+                manual_additions.append(f"template DNA ({template_dna_volume} µL)")
+            if not same_primers:
+                manual_additions.append(f"primers ({primer_volume} µL)")
+                
+            manual_text = " and ".join(manual_additions)
+            protocol.comment(f"DEBUG: Would pause here for manual addition of {manual_text}")
+        
+        # Simulate thermocycler steps
+        protocol.comment("DEBUG: Simulating moving PCR plate to thermocycler")
+        protocol.comment("DEBUG: Simulating thermocycler program:")
+        protocol.comment(f"DEBUG: - Lid temperature: 105°C")
+        
+        if colony_pcr:
+            protocol.comment(f"DEBUG: - Cell lysis: {lysis_temp}°C for {lysis_time_seconds} seconds")
+        
+        protocol.comment(f"DEBUG: - Initial denaturation: {denaturation_temp}°C for {initial_denaturation_time_seconds} seconds")
+        protocol.comment(f"DEBUG: - {num_cycles} PCR cycles:")
+        protocol.comment(f"DEBUG:   * Denaturation: {denaturation_temp}°C for {denaturation_time_seconds} seconds")
+        protocol.comment(f"DEBUG:   * Annealing: {annealing_temp}°C for {annealing_time_seconds} seconds")
+        protocol.comment(f"DEBUG:   * Extension: {extension_temp}°C for {extension_time_seconds} seconds")
+        protocol.comment(f"DEBUG: - Final extension: {extension_temp}°C for {final_extension_time_seconds} seconds")
+        protocol.comment(f"DEBUG: - Cooling to 4°C")
+        
+        protocol.comment("=== DEBUG MODE COMPLETE ===")
     
     # Move PCR plate to thermocycler and run program
     if not debug:
