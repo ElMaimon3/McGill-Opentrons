@@ -74,7 +74,7 @@ def run(protocol: protocol_api.ProtocolContext):
         # Log current state
         protocol.comment(f"Transfer #{i+1}: Current volume: {current_volume:.1f} mL, Aspirating from {height} mm below top")
         
-        p1000.transfer(200, source_well.top(-height), dest_well)
+        p1000.transfer(200, source_well.top(-height), dest_well, new_tip='never')
         
         # Update current volume
         current_volume -= 1.6
@@ -85,7 +85,7 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.delay(seconds=1)
     
     if current_volume > 0:
-        p1000.transfer(current_volume/1000, source_well.top(-height), dest_well)
+        p1000.transfer(current_volume/1000, source_well.top(-height), dest_well, new_tip='never')
 
     p1000.drop_tip()
     # Print final confirmation
