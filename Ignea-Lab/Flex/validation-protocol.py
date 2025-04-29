@@ -35,7 +35,7 @@ def vol_to_height(vol: float) -> float:
     Returns:
         Appropriate pipette depth in mm
     '''
-    full_depth = 42.16
+    full_depth = 42.2
     if vol > 0:
         return round(-1.91636*vol + full_depth)
     else:
