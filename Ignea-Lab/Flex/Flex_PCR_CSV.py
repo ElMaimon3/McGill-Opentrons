@@ -437,7 +437,7 @@ def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tip
     last_size = 0
     tip_attached = False
     
-    for group in grouped_wells:
+    for i, group in enumerate(grouped_wells):
         group_size = len(group)
         # Determine the location to dispense to
         loc = tc_plate.wells_by_name()[group[-1]]
@@ -451,6 +451,7 @@ def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tip
         if not keep_tips:
             if tip_attached:
                 pipette.drop_tip()
+                tip_attached = False
             tip_loc, tips = smart_pick_up(group_size, tips)
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
@@ -460,8 +461,16 @@ def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tip
         pipette.dispense(volume, loc.top())
         height_tracker -= group_size * 0.001 * volume
         
-        # Drop the tip
-        pipette.drop_tip()
+        # Only drop the tip at the end of all groups or if we need different tips next time
+        is_last_group = (i == len(grouped_wells) - 1)
+        needs_different_tips_next = False
+        if not is_last_group:
+            next_group_size = len(grouped_wells[i+1])
+            needs_different_tips_next = (next_group_size != group_size)
+            
+        if is_last_group or needs_different_tips_next:
+            pipette.drop_tip()
+            tip_attached = False
     
     return tips, height_tracker
 
