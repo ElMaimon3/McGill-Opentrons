@@ -498,7 +498,7 @@ def run(protocol: protocol_api.ProtocolContext):
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    res = protocol.load_labware('nest_12_reservoir_15ml','C1')
+    res = protocol.load_labware('usascientific_12_reservoir_22ml','C1')
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
 
