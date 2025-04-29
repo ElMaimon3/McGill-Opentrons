@@ -620,6 +620,8 @@ def run(protocol: protocol_api.ProtocolContext):
                 
             manual_text = " and ".join(manual_additions)
             protocol.pause(f"Please add {manual_text} to each sample manually, then resume.")
+    else:
+        pass # CLAUDE WORK HERE
     
     # Move PCR plate to thermocycler and run program
     if not debug:
