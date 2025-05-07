@@ -15,13 +15,13 @@ requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
 # Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
-    parameters.add_int(
+    parameters.add_float(
         variable_name="depth",
         display_name="Eppendorf testing depth",
         description="Depth to test pipette tip at",
-        default=36,
-        minimum=1,
-        maximum=50,
+        default=36.0,
+        minimum=10.0,
+        maximum=45.0,
         unit="mm"
     )
 
