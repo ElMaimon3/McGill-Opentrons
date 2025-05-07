@@ -31,6 +31,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
 
     # Load labware
+    chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C2')
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'C3')
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C1')
