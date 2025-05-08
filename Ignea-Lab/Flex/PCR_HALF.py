@@ -17,19 +17,6 @@ requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 # Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
     
-    # Configuration parameters for what's consistent vs variable
-    parameters.add_bool(
-        variable_name="same_template_dna",
-        display_name="Same Template DNA",
-        description="Enable if all samples use the same template DNA (robot will add it)",
-        default=False
-    )
-    parameters.add_bool(
-        variable_name="same_primers",
-        display_name="Same Primers",
-        description="Enable if all samples use the same primers (robot will add them)",
-        default=True
-    )
     
     # Template DNA parameters
     parameters.add_int(
@@ -147,12 +134,11 @@ def add_parameters(parameters: protocol_api.Parameters):
     )
     
 
-    
     # Debug mode
     parameters.add_bool(
         variable_name="debug",
         display_name="Debugging Mode",
-        description="Run in simulation mode only",
+        description="For testing purposes",
         default=False
     )
 
