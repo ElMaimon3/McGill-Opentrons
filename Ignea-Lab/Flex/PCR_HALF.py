@@ -146,8 +146,6 @@ def add_parameters(parameters: protocol_api.Parameters):
 
 def run(protocol: protocol_api.ProtocolContext):
     # Get PCR parameters from runtime inputs
-    same_template_dna = protocol.params.same_template_dna
-    same_primers = protocol.params.same_primers
     template_dna_volume = protocol.params.template_dna_volume
     master_mix_volume = protocol.params.master_volume
     primer_volume = protocol.params.primer_volume
