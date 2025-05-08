@@ -231,7 +231,7 @@ def run(protocol: protocol_api.ProtocolContext):
         # Cool down and open lid
         protocol.comment("PCR complete. Cooling down to 4°C")
 
+        tc_mod.deactivate_lid()
         tc_mod.set_block_temperature(4)
         protocol.pause("Ready to take out your plate?")
-        tc_mod.deactivate_lid()
         tc_mod.open_lid()
