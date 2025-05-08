@@ -414,14 +414,10 @@ def run(protocol: protocol_api.ProtocolContext):
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-<<<<<<< HEAD
-    tube_rack = protocol.load_labware('usascientific_12_reservoir_22ml','C1')
-=======
     
     # Load tube rack for reagents instead of reservoir
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C1')
     
->>>>>>> 0596294f64048cfd4ecb2543d1a019cee67e1a31
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
 
@@ -429,30 +425,11 @@ def run(protocol: protocol_api.ProtocolContext):
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
     p200 = protocol.load_instrument('flex_8channel_1000', 'right')
     
-<<<<<<< HEAD
-    # Define reagent locations and volumes - now specified by position
-    master_mix = tube_rack.wells_by_name()['A1'].top(-36.5)
-    template_dna = tube_rack.wells_by_name()['A2'].top(-36.5)
-    primers = tube_rack.wells_by_name()['A3'].top(-36.5)
-=======
     # Define reagent locations in tube rack
     master_mix = tube_rack.wells_by_name()['A1']
     template_dna = tube_rack.wells_by_name()['A2']
     primers = tube_rack.wells_by_name()['A3']
->>>>>>> 0596294f64048cfd4ecb2543d1a019cee67e1a31
     
-<<<<<<< HEAD
-    # Initialize liquid height trackers (NOT NEEDED ANYMORE)
-    primer_height_tracker = 4  # mL
-    template_height_tracker = 4  # mL
-    master_mix_height_tracker = 0.45  # mL
-    
-    # Initialize tip tracking
-    tips50 = None
-    tips200 = None
-
-=======
->>>>>>> 0596294f64048cfd4ecb2543d1a019cee67e1a31
     # Define thermocycling program
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},
@@ -688,15 +665,10 @@ def run(protocol: protocol_api.ProtocolContext):
             block_max_volume=total_volume
         )
         
-        # Cool down
+        # Cool down and open lid
         protocol.comment("PCR complete. Cooling down to 4°C")
-<<<<<<< HEAD
-        tc_mod.deactivate_lid()
-
-=======
         # Make sure to deactivate the lid before setting the final hold temperature
         tc_mod.deactivate_lid()
->>>>>>> 0596294f64048cfd4ecb2543d1a019cee67e1a31
         tc_mod.set_block_temperature(4)
         protocol.pause("Ready to take out your plate?")
         tc_mod.open_lid()
