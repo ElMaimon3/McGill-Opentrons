@@ -1,7 +1,7 @@
 # imports
 from opentrons import protocol_api
-from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
-from typing import List, Dict, Tuple, Set, Optional, Any
+from opentrons.protocol_api import SINGLE
+from typing import List, Dict, Tuple, Optional, Any
 
 
 # metadata
@@ -11,7 +11,8 @@ metadata = {
     'description': '''Fully customizable PCR for the Opentrons Flex.
     The protocol allows you to specify which components (template DNA, primers) 
     are the same across all samples and which are different. The robot will add 
-    components that are the same, while different components must be added manually.'''
+    components that are the same, while different components must be added manually.
+    This version uses the 8-channel pipette in single-tip mode for eppendorf tubes.'''
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
@@ -192,22 +193,6 @@ def add_parameters(parameters: protocol_api.Parameters):
     )
 
 # Utility functions
-def vol_to_height(vol: float) -> float:
-    '''
-    Converts volume of liquid to appropriate pipette depth.
-    
-    Args:
-        vol: Volume of liquid in mL
-        
-    Returns:
-        Appropriate pipette depth in mm
-    '''
-    full_depth = 42.8
-    if vol > 0:
-        return round(-1.94545*vol + full_depth)
-    else:
-        return full_depth
-
 def extract_well_name(well_str: str) -> str:
     '''
     Extracts the well name (e.g., "A1") from a well string that might contain
@@ -285,194 +270,116 @@ def get_unique_wells(protocol, tc_plate, columns, rows, wells) -> List[str]:
             
     return unique_wells
 
-def group_wells(unique_wells: List[str]) -> List[List[str]]:
+def dispense_solution(protocol, tc_plate, unique_wells, pipette, tips_rack, 
+                     solution_well, volume, solution_name="solution", tip_index=0):
     '''
-    Groups wells into vertically adjacent groups and sorts them by size.
-    
-    Args:
-        unique_wells: List of well names (e.g., ["A1", "B1", "C1"])
-        
-    Returns:
-        List of well groups, sorted by size (largest first)
-    '''
-    # Sort wells by column, then by row
-    sorted_wells = sorted(unique_wells, key=lambda x: (int(x[1:]), ord(x[0])))
-    
-    grouped_wells = []
-    current_group = []
-    
-    for i, well in enumerate(sorted_wells):
-        # Extract row letter and column number
-        row = well[0]
-        col = well[1:]
-        
-        # Start a new group or check if this well continues the current group
-        if not current_group:
-            current_group.append(well)
-        elif col == current_group[-1][1:] and ord(row) == ord(current_group[-1][0]) + 1:
-            # This well is in the same column and adjacent row as the last well
-            current_group.append(well)
-        else:
-            # This well is not adjacent, so start a new group
-            grouped_wells.append(current_group)
-            current_group = [well]
-    
-    # Add the last group if it exists
-    if current_group:
-        grouped_wells.append(current_group)
-    
-    # Sort groups by size (largest first)
-    return sorted(grouped_wells, key=len, reverse=True)
-
-class NotEnoughTips(Exception):
-    '''Exception raised when there aren't enough tips available.'''
-    pass
-
-def smart_pick_up(size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[str, Dict[str, bool]]:
-    '''
-    Selects the appropriate tips based on the number needed.
-    
-    Args:
-        size: Number of tips needed
-        tips: Dictionary tracking available tips
-        
-    Returns:
-        Tuple of (tip location, updated tips dictionary)
-        
-    Raises:
-        NotEnoughTips: If there aren't enough tips available
-    '''
-    if tips is None:
-        tips = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
-
-    def is_column_clear(column, start_row):
-        for row in range(start_row):
-            loc = f"{chr(65+row)}{column+1}"
-            if tips.get(loc, False):
-                return False
-        return True
-
-    # Iterate over columns
-    for col in range(12):
-        if size == 1:
-            for row in range(7, -1, -1):
-                loc = f"{chr(65+row)}{col+1}"
-                if tips.get(loc, False) and is_column_clear(col, row):
-                    tips[loc] = False
-                    return loc, tips
-
-        elif 2 <= size <= 7:
-            for row in range(8 - size + 1):
-                if all(tips.get(f"{chr(65+row+i)}{col+1}", False) for i in range(size)) and is_column_clear(col, row):
-                    loc = f"{chr(65+row+size-1)}{col+1}"
-                    for i in range(size):
-                        tips[f"{chr(65+row+i)}{col+1}"] = False
-                    return loc, tips
-
-        elif size == 8:
-            if all(tips.get(f"{chr(65+row)}{col+1}", False) for row in range(8)):
-                loc = f"A{col+1}"
-                for row in range(8):
-                    tips[f"{chr(65+row)}{col+1}"] = False
-                return loc, tips
-
-    raise NotEnoughTips("Not enough tips available")
-
-def configure_pipette_for_group(pipette, group_size: int, last_size: int):
-    '''
-    Configures the pipette nozzle layout based on the group size.
-    
-    Args:
-        pipette: Pipette instrument to configure
-        group_size: Size of the current well group
-        last_size: Size of the previous well group
-        
-    Returns:
-        tuple: (keep_tips flag, updated last_size)
-    '''
-    keep_tips = (group_size == last_size)
-    
-    if not keep_tips:
-        if group_size == 1:
-            pipette.configure_nozzle_layout(
-                style=SINGLE,
-                start="H1"
-            )
-        elif group_size == 8:
-            pipette.configure_nozzle_layout(
-                style=ALL
-            )
-        else:
-            last = ["G1", "F1", "E1", "D1", "C1", "B1"][group_size-2]
-            pipette.configure_nozzle_layout(
-                style=PARTIAL_COLUMN,
-                start="H1",
-                end=last
-            )
-    
-    return keep_tips, group_size
-
-def dispense_solution(protocol, tc_plate, grouped_wells, pipette, tips_rack, tips, 
-                      solution_well, volume, height_tracker, solution_name="solution"):
-    '''
-    Dispenses solution from a reservoir to wells in the PCR plate.
+    Dispenses solution from a source well to PCR plate wells using single-tip mode.
+    Uses a single tip for all wells when dispensing the same reagent.
     
     Args:
         protocol: Protocol context
         tc_plate: PCR plate labware
-        grouped_wells: Grouped well locations
+        unique_wells: List of unique well names
         pipette: Pipette to use
         tips_rack: Tip rack to use
-        tips: Dictionary of available tips
         solution_well: Source well for the solution
         volume: Volume to dispense
-        height_tracker: Tracker for liquid height in the source well
         solution_name: Name of the solution (for logging)
+        tip_index: Index of the next available tip to use
         
     Returns:
-        Updated tips dictionary and height tracker
+        Next available tip index
     '''
     protocol.comment(f"Adding {volume} µL of {solution_name} to each sample")
     
-    last_size = 0
-    tip_attached = False
+    # Configure pipette for single-tip use
+    pipette.configure_nozzle_layout(
+        style=SINGLE,
+        start="H1"
+    )
     
-    for i, group in enumerate(grouped_wells):
-        group_size = len(group)
-        # Determine the location to dispense to
-        loc = tc_plate.wells_by_name()[group[-1]]
-        if group_size == 8:
-            loc = tc_plate.wells_by_name()[group[0]]
-        
-        # Configure pipette based on group size
-        keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
-        
-        # Pick up tips if needed
-        if not keep_tips:
-            if tip_attached:
-                pipette.drop_tip()
-                tip_attached = False
-            tip_loc, tips = smart_pick_up(group_size, tips)
-            pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
-            tip_attached = True
-        
-        # Dispense the solution
-        pipette.aspirate(volume, solution_well.top(-vol_to_height(height_tracker)))
-        pipette.dispense(volume, loc.top())
-        height_tracker -= group_size * 0.001 * volume
-        
-        # Only drop the tip at the end of all groups or if we need different tips next time
-        is_last_group = (i == len(grouped_wells) - 1)
-        needs_different_tips_next = False
-        if not is_last_group:
-            next_group_size = len(grouped_wells[i+1])
-            needs_different_tips_next = (next_group_size != group_size)
-            
-        if is_last_group or needs_different_tips_next:
-            pipette.drop_tip()
-            tip_attached = False
+    # Calculate which tip to use (moving sequentially through the tip rack)
+    row = tip_index % 8  # 0-7 for rows A-H
+    col = tip_index // 8  # Column number
     
-    return tips, height_tracker
+    if col >= 12:
+        protocol.pause(f"Warning: Not enough tips in the rack for {solution_name}. Please replace the tip rack.")
+        row = 0
+        col = 0
+    
+    tip_well = f"{chr(65 + row)}{col + 1}"  # Convert to well name like 'A1'
+    protocol.comment(f"Using tip at position {tip_well} for {solution_name}")
+    
+    # Pick up the selected tip
+    pipette.pick_up_tip(tips_rack.wells_by_name()[tip_well])
+    
+    # Process each well with the same tip
+    for well in unique_wells:
+        # Aspirate and dispense
+        pipette.aspirate(volume, solution_well)
+        pipette.dispense(volume, tc_plate.wells_by_name()[well])
+    
+    # Drop the tip after all wells are processed
+    pipette.drop_tip()
+    
+    # Return the next tip index
+    return tip_index + 1
+
+def debug_simulate_solution_addition(protocol, tc_plate, unique_wells, pipette, tips_rack, 
+                                   solution_name="solution", volume=0, tip_index=0):
+    '''
+    Debug version that simulates adding solution without actually dispensing.
+    Uses a single tip for all wells when dispensing the same reagent.
+    
+    Args:
+        protocol: Protocol context
+        tc_plate: PCR plate labware
+        unique_wells: List of unique well names
+        pipette: Pipette to use
+        tips_rack: Tip rack to use
+        solution_name: Name of the solution (for logging)
+        volume: Volume to dispense
+        tip_index: Index of the next available tip to use
+        
+    Returns:
+        Next available tip index
+    '''
+    protocol.comment(f"DEBUG MODE: Simulating adding {volume} µL of {solution_name} to each sample")
+    
+    # Configure pipette for single-tip use
+    pipette.configure_nozzle_layout(
+        style=SINGLE,
+        start="H1"
+    )
+    
+    # Calculate which tip to use (moving sequentially through the tip rack)
+    row = tip_index % 8  # 0-7 for rows A-H
+    col = tip_index // 8  # Column number
+    
+    if col >= 12:
+        protocol.comment(f"DEBUG: Would pause for tip rack replacement for {solution_name}")
+        row = 0
+        col = 0
+    
+    tip_well = f"{chr(65 + row)}{col + 1}"  # Convert to well name like 'A1'
+    protocol.comment(f"DEBUG: Using tip at position {tip_well} for {solution_name}")
+    
+    # Pick up the selected tip
+    pipette.pick_up_tip(tips_rack.wells_by_name()[tip_well])
+    
+    # Process each well with the same tip
+    for well in unique_wells:
+        # Simulate aspirating and dispensing
+        protocol.comment(f"DEBUG: Moving to position {well} to simulate dispensing")
+        pipette.move_to(tc_plate.wells_by_name()[well].top())
+        protocol.delay(seconds=1)  # Wait for 1 second to simulate dispensing
+    
+    # Drop the tip after all wells are processed
+    protocol.comment(f"DEBUG: Dropping tip after dispensing to all wells")
+    pipette.drop_tip()
+    
+    # Return the next tip index
+    return tip_index + 1
 
 def run(protocol: protocol_api.ProtocolContext):
     # Get PCR parameters from runtime inputs
@@ -507,7 +414,10 @@ def run(protocol: protocol_api.ProtocolContext):
     chute = protocol.load_waste_chute()
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
     tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
-    res = protocol.load_labware('usascientific_12_reservoir_22ml','C1')
+    
+    # Load tube rack for reagents instead of reservoir
+    tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C1')
+    
     tc_mod = protocol.load_module('thermocyclerModuleV2')
     tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
 
@@ -515,20 +425,11 @@ def run(protocol: protocol_api.ProtocolContext):
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
     p200 = protocol.load_instrument('flex_8channel_1000', 'right')
     
-    # Define reagent locations and volumes - now specified by position
-    master_mix = res.wells_by_name()['A1']
-    template_dna = res.wells_by_name()['A2']
-    primers = res.wells_by_name()['A3']
+    # Define reagent locations in tube rack
+    master_mix = tube_rack.wells_by_name()['A1']
+    template_dna = tube_rack.wells_by_name()['A2']
+    primers = tube_rack.wells_by_name()['A3']
     
-    # Initialize liquid height trackers
-    primer_height_tracker = 4  # mL
-    template_height_tracker = 4  # mL
-    master_mix_height_tracker = 0.45  # mL
-    
-    # Initialize tip tracking
-    tips50 = None
-    tips200 = None
-
     # Define thermocycling program
     pcr_program = [
         {'temperature': denaturation_temp, 'hold_time_seconds': denaturation_time_seconds},
@@ -560,64 +461,61 @@ def run(protocol: protocol_api.ProtocolContext):
         csv_data = well_csv.parse_as_csv()
         sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
         
-        # Get unique wells and group them
+        # Get unique wells
         unique_wells = get_unique_wells(protocol, tc_plate, sample_columns, sample_rows, sample_wells)
-        grouped_wells = group_wells(unique_wells)
+        
+        # Initialize tip trackers
+        tip_50_index = 0
+        tip_200_index = 0
         
         # Add solutions that are the same across all samples
         
         # 1. Always add master mix
         master_pipette = p50 if master_mix_volume < 50 else p200
         master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
-        master_tips = tips50 if master_mix_volume < 50 else tips200
         
-        master_tips, master_mix_height_tracker = dispense_solution(
-            protocol, tc_plate, grouped_wells, master_pipette,
-            master_rack, master_tips, master_mix, master_mix_volume, 
-            master_mix_height_tracker, "master mix"
-        )
-        
-        # Update tip tracking
         if master_mix_volume < 50:
-            tips50 = master_tips
+            tip_50_index = dispense_solution(
+                protocol, tc_plate, unique_wells, master_pipette,
+                master_rack, master_mix, master_mix_volume, "master mix", tip_50_index
+            )
         else:
-            tips200 = master_tips
+            tip_200_index = dispense_solution(
+                protocol, tc_plate, unique_wells, master_pipette,
+                master_rack, master_mix, master_mix_volume, "master mix", tip_200_index
+            )
         
         # 2. Add template DNA if it's the same for all samples
         if same_template_dna:
             template_pipette = p50 if template_dna_volume < 50 else p200
             template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
-            template_tips = tips50 if template_dna_volume < 50 else tips200
             
-            template_tips, template_height_tracker = dispense_solution(
-                protocol, tc_plate, grouped_wells, template_pipette,
-                template_rack, template_tips, template_dna, template_dna_volume, 
-                template_height_tracker, "template DNA"
-            )
-            
-            # Update tip tracking
             if template_dna_volume < 50:
-                tips50 = template_tips
+                tip_50_index = dispense_solution(
+                    protocol, tc_plate, unique_wells, template_pipette,
+                    template_rack, template_dna, template_dna_volume, "template DNA", tip_50_index
+                )
             else:
-                tips200 = template_tips
+                tip_200_index = dispense_solution(
+                    protocol, tc_plate, unique_wells, template_pipette,
+                    template_rack, template_dna, template_dna_volume, "template DNA", tip_200_index
+                )
         
         # 3. Add primers if they're the same for all samples
         if same_primers:
             primer_pipette = p50 if primer_volume < 50 else p200
             primer_rack = tiprack50 if primer_volume < 50 else tiprack200
-            primer_tips = tips50 if primer_volume < 50 else tips200
             
-            primer_tips, primer_height_tracker = dispense_solution(
-                protocol, tc_plate, grouped_wells, primer_pipette,
-                primer_rack, primer_tips, primers, primer_volume, 
-                primer_height_tracker, "primers"
-            )
-            
-            # Update tip tracking
             if primer_volume < 50:
-                tips50 = primer_tips
+                tip_50_index = dispense_solution(
+                    protocol, tc_plate, unique_wells, primer_pipette,
+                    primer_rack, primers, primer_volume, "primers", tip_50_index
+                )
             else:
-                tips200 = primer_tips
+                tip_200_index = dispense_solution(
+                    protocol, tc_plate, unique_wells, primer_pipette,
+                    primer_rack, primers, primer_volume, "primers", tip_200_index
+                )
                 
         # Pause to allow manual additions if needed
         if not same_template_dna or not same_primers:
@@ -630,7 +528,7 @@ def run(protocol: protocol_api.ProtocolContext):
             manual_text = " and ".join(manual_additions)
             protocol.pause(f"Please add {manual_text} to each sample manually, then resume.")
     else:
-        # Debug mode - Parse CSV and configure pipettes without dispensing
+        # Debug mode - Parse CSV and simulate pipetting without dispensing
         protocol.comment("=== DEBUG MODE ACTIVATED ===")
         protocol.comment("This will simulate pipetting operations without dispensing liquids")
         
@@ -638,109 +536,61 @@ def run(protocol: protocol_api.ProtocolContext):
         csv_data = well_csv.parse_as_csv()
         sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
         
-        # Get unique wells and group them (same as non-debug mode)
+        # Get unique wells
         unique_wells = get_unique_wells(protocol, tc_plate, sample_columns, sample_rows, sample_wells)
-        grouped_wells = group_wells(unique_wells)
         
-        protocol.comment(f"DEBUG: Found {len(unique_wells)} unique wells across {len(grouped_wells)} groups")
+        protocol.comment(f"DEBUG: Found {len(unique_wells)} unique wells")
         
-        # Define a debug version of dispensing function
-        def debug_simulate_solution_addition(protocol, tc_plate, grouped_wells, pipette, tips_rack, tips, 
-                                            solution_name="solution", volume=0):
-            '''
-            Debug version that simulates adding solution without actually dispensing.
-            '''
-            protocol.comment(f"DEBUG MODE: Simulating adding {volume} µL of {solution_name} to each sample")
-            
-            last_size = 0
-            tip_attached = False
-            
-            for group in grouped_wells:
-                group_size = len(group)
-                # Determine the location to dispense to
-                loc = tc_plate.wells_by_name()[group[-1]]
-                if group_size == 8:
-                    loc = tc_plate.wells_by_name()[group[0]]
-                
-                # Configure pipette based on group size
-                keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
-                protocol.comment(f"DEBUG: Configured pipette for group size {group_size}, wells: {', '.join(group)}")
-                
-                # Pick up tips if needed
-                if not keep_tips:
-                    if tip_attached:
-                        pipette.drop_tip()
-                        tip_attached = False
-                    tip_loc, tips = smart_pick_up(group_size, tips)
-                    pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
-                    tip_attached = True
-                    protocol.comment(f"DEBUG: Picked up {group_size} tips from {tip_loc}")
-                
-                # Simulate dispensing - move to position and delay
-                protocol.comment(f"DEBUG: Moving to position {loc} to simulate dispensing")
-                pipette.move_to(loc.top())
-                protocol.delay(seconds=1)  # Wait for 1 second to simulate dispensing
-                
-                # Drop the tip
-                protocol.comment(f"DEBUG: Dropping tips")
-                pipette.drop_tip()
-                tip_attached = False
-            
-            return tips
-        
-        # Initialize tip tracking 
-        tips50 = None
-        tips200 = None
+        # Initialize tip trackers
+        tip_50_index = 0
+        tip_200_index = 0
         
         # 1. Simulate adding master mix
         master_pipette = p50 if master_mix_volume < 50 else p200
         master_rack = tiprack50 if master_mix_volume < 50 else tiprack200
-        master_tips = tips50 if master_mix_volume < 50 else tips200
         
-        master_tips = debug_simulate_solution_addition(
-            protocol, tc_plate, grouped_wells, master_pipette,
-            master_rack, master_tips, "master mix", master_mix_volume
-        )
-        
-        # Update tip tracking
         if master_mix_volume < 50:
-            tips50 = master_tips
+            tip_50_index = debug_simulate_solution_addition(
+                protocol, tc_plate, unique_wells, master_pipette,
+                master_rack, "master mix", master_mix_volume, tip_50_index
+            )
         else:
-            tips200 = master_tips
+            tip_200_index = debug_simulate_solution_addition(
+                protocol, tc_plate, unique_wells, master_pipette,
+                master_rack, "master mix", master_mix_volume, tip_200_index
+            )
         
         # 2. Simulate adding template DNA if it's the same for all samples
         if same_template_dna:
             template_pipette = p50 if template_dna_volume < 50 else p200
             template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
-            template_tips = tips50 if template_dna_volume < 50 else tips200
             
-            template_tips = debug_simulate_solution_addition(
-                protocol, tc_plate, grouped_wells, template_pipette,
-                template_rack, template_tips, "template DNA", template_dna_volume
-            )
-            
-            # Update tip tracking
             if template_dna_volume < 50:
-                tips50 = template_tips
+                tip_50_index = debug_simulate_solution_addition(
+                    protocol, tc_plate, unique_wells, template_pipette,
+                    template_rack, "template DNA", template_dna_volume, tip_50_index
+                )
             else:
-                tips200 = template_tips
+                tip_200_index = debug_simulate_solution_addition(
+                    protocol, tc_plate, unique_wells, template_pipette,
+                    template_rack, "template DNA", template_dna_volume, tip_200_index
+                )
         
         # 3. Simulate adding primers if they're the same for all samples
         if same_primers:
             primer_pipette = p50 if primer_volume < 50 else p200
             primer_rack = tiprack50 if primer_volume < 50 else tiprack200
-            primer_tips = tips50 if primer_volume < 50 else tips200
             
-            primer_tips = debug_simulate_solution_addition(
-                protocol, tc_plate, grouped_wells, primer_pipette,
-                primer_rack, primer_tips, "primers", primer_volume
-            )
-            
-            # Update tip tracking
             if primer_volume < 50:
-                tips50 = primer_tips
+                tip_50_index = debug_simulate_solution_addition(
+                    protocol, tc_plate, unique_wells, primer_pipette,
+                    primer_rack, "primers", primer_volume, tip_50_index
+                )
             else:
-                tips200 = primer_tips
+                tip_200_index = debug_simulate_solution_addition(
+                    protocol, tc_plate, unique_wells, primer_pipette,
+                    primer_rack, "primers", primer_volume, tip_200_index
+                )
         
         # Simulate pause for manual additions if needed
         if not same_template_dna or not same_primers:
@@ -817,8 +667,8 @@ def run(protocol: protocol_api.ProtocolContext):
         
         # Cool down and open lid
         protocol.comment("PCR complete. Cooling down to 4°C")
-
+        # Make sure to deactivate the lid before setting the final hold temperature
+        tc_mod.deactivate_lid()
         tc_mod.set_block_temperature(4)
         protocol.pause("Ready to take out your plate?")
-        tc_mod.deactivate_lid()
         tc_mod.open_lid()
