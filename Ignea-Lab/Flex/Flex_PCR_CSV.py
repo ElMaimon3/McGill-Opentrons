@@ -412,14 +412,14 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load labware
     chute = protocol.load_waste_chute()
-    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D1')
-    tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'D2')
+    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'D2')
+    tiprack200 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'C3')
     
     # Load tube rack for reagents instead of reservoir
     tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C1')
     
     tc_mod = protocol.load_module('thermocyclerModuleV2')
-    tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'C2')
+    tc_plate = protocol.load_labware('opentrons_96_wellplate_200ul_pcr_full_skirt', 'B2')
 
     # Load pipettes
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
