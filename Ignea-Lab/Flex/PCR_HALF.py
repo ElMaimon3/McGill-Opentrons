@@ -162,10 +162,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Calculate volumes
     total_volume = master_mix_volume
-    if same_template_dna:
-        total_volume += template_dna_volume
-    if same_primers:
-        total_volume += primer_volume
+    total_volume += template_dna_volume
+    total_volume += primer_volume
 
     # Load labware
     chute = protocol.load_waste_chute()
