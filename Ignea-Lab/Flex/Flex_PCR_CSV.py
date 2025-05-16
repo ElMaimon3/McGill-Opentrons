@@ -9,9 +9,11 @@ metadata = {
     'protocolName': 'Customizable PCR (CSV)',
     "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': '''Fully customizable PCR for the Opentrons Flex.
-    The protocol allows you to specify which components (template DNA, primers) 
-    are the same across all samples and which are different. The robot will add 
-    components that are the same, while different components must be added manually.
+    The PCR reaction mix is split into two components for this Opentrons
+    protocol: Master mix refers to everything that is common accross all samples,
+    while sample refers to everything that is different accross all samples.
+    Different components must be added manually.
+    Depending on your use case, primers or template DNA might be added to the master mix.
     This version uses the 8-channel pipette in single-tip mode for eppendorf tubes.'''
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
@@ -29,25 +31,11 @@ def add_parameters(parameters: protocol_api.Parameters):
         )
     )
     
-    # Configuration parameters for what's consistent vs variable
-    parameters.add_bool(
-        variable_name="same_template_dna",
-        display_name="Same Template DNA",
-        description="Enable if all samples use the same template DNA (robot will add it)",
-        default=False
-    )
-    parameters.add_bool(
-        variable_name="same_primers",
-        display_name="Same Primers",
-        description="Enable if all samples use the same primers (robot will add them)",
-        default=True
-    )
-    
     # Template DNA parameters
     parameters.add_int(
         variable_name="template_dna_volume",
-        display_name="Template DNA Volume",
-        description="Volume of template DNA per sample",
+        display_name="Sample Volume",
+        description="May be DNA or primers, or both",
         default=1,
         minimum=1,
         maximum=25,
@@ -65,16 +53,6 @@ def add_parameters(parameters: protocol_api.Parameters):
         unit="µL"
     )
     
-    # Primer parameters
-    parameters.add_int(
-        variable_name="primer_volume",
-        display_name="Primer Volume",
-        description="Volume of primers for each sample",
-        default=20,
-        minimum=5,
-        maximum=30,
-        unit="µL"
-    )
     
     # Thermocycler parameters
     parameters.add_int(
@@ -384,11 +362,9 @@ def debug_simulate_solution_addition(protocol, tc_plate, unique_wells, pipette, 
 def run(protocol: protocol_api.ProtocolContext):
     # Get PCR parameters from runtime inputs
     well_csv = protocol.params.well_csv
-    same_template_dna = protocol.params.same_template_dna
-    same_primers = protocol.params.same_primers
+
     template_dna_volume = protocol.params.template_dna_volume
     master_mix_volume = protocol.params.master_volume
-    primer_volume = protocol.params.primer_volume
     denaturation_temp = protocol.params.denaturation_temp
     initial_denaturation_time_seconds = protocol.params.init_denaturation_time
     denaturation_time_seconds = protocol.params.denaturation_time
@@ -405,10 +381,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Calculate volumes
     total_volume = master_mix_volume
-    if same_template_dna:
-        total_volume += template_dna_volume
-    if same_primers:
-        total_volume += primer_volume
+    total_volume += template_dna_volume
+
 
     # Load labware
     chute = protocol.load_waste_chute()
@@ -444,15 +418,6 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("=== PCR SETUP INFORMATION ===")
     protocol.comment(f"Master Mix: {master_mix_volume} µL (Robot will add to all samples)")
     
-    if same_template_dna:
-        protocol.comment(f"Template DNA: {template_dna_volume} µL (Robot will add to all samples)")
-    else:
-        protocol.comment(f"Template DNA: {template_dna_volume} µL (Must be added manually to each sample)")
-        
-    if same_primers:
-        protocol.comment(f"Primers: {primer_volume} µL (Robot will add to all samples)")
-    else:
-        protocol.comment(f"Primers: {primer_volume} µL (Must be added manually to each sample)")
     
     protocol.comment("===========================")
 
@@ -484,49 +449,8 @@ def run(protocol: protocol_api.ProtocolContext):
                 protocol, tc_plate, unique_wells, master_pipette,
                 master_rack, master_mix, master_mix_volume, "master mix", tip_200_index
             )
-        
-        # 2. Add template DNA if it's the same for all samples
-        if same_template_dna:
-            template_pipette = p50 if template_dna_volume < 50 else p200
-            template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
-            
-            if template_dna_volume < 50:
-                tip_50_index = dispense_solution(
-                    protocol, tc_plate, unique_wells, template_pipette,
-                    template_rack, template_dna, template_dna_volume, "template DNA", tip_50_index
-                )
-            else:
-                tip_200_index = dispense_solution(
-                    protocol, tc_plate, unique_wells, template_pipette,
-                    template_rack, template_dna, template_dna_volume, "template DNA", tip_200_index
-                )
-        
-        # 3. Add primers if they're the same for all samples
-        if same_primers:
-            primer_pipette = p50 if primer_volume < 50 else p200
-            primer_rack = tiprack50 if primer_volume < 50 else tiprack200
-            
-            if primer_volume < 50:
-                tip_50_index = dispense_solution(
-                    protocol, tc_plate, unique_wells, primer_pipette,
-                    primer_rack, primers, primer_volume, "primers", tip_50_index
-                )
-            else:
-                tip_200_index = dispense_solution(
-                    protocol, tc_plate, unique_wells, primer_pipette,
-                    primer_rack, primers, primer_volume, "primers", tip_200_index
-                )
-                
-        # Pause to allow manual additions if needed
-        if not same_template_dna or not same_primers:
-            manual_additions = []
-            if not same_template_dna:
-                manual_additions.append(f"template DNA ({template_dna_volume} µL)")
-            if not same_primers:
-                manual_additions.append(f"primers ({primer_volume} µL)")
-                
-            manual_text = " and ".join(manual_additions)
-            protocol.pause(f"Please add {manual_text} to each sample manually, then resume.")
+             
+
     else:
         # Debug mode - Parse CSV and simulate pipetting without dispensing
         protocol.comment("=== DEBUG MODE ACTIVATED ===")
@@ -560,49 +484,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 master_rack, "master mix", master_mix_volume, tip_200_index
             )
         
-        # 2. Simulate adding template DNA if it's the same for all samples
-        if same_template_dna:
-            template_pipette = p50 if template_dna_volume < 50 else p200
-            template_rack = tiprack50 if template_dna_volume < 50 else tiprack200
-            
-            if template_dna_volume < 50:
-                tip_50_index = debug_simulate_solution_addition(
-                    protocol, tc_plate, unique_wells, template_pipette,
-                    template_rack, "template DNA", template_dna_volume, tip_50_index
-                )
-            else:
-                tip_200_index = debug_simulate_solution_addition(
-                    protocol, tc_plate, unique_wells, template_pipette,
-                    template_rack, "template DNA", template_dna_volume, tip_200_index
-                )
-        
-        # 3. Simulate adding primers if they're the same for all samples
-        if same_primers:
-            primer_pipette = p50 if primer_volume < 50 else p200
-            primer_rack = tiprack50 if primer_volume < 50 else tiprack200
-            
-            if primer_volume < 50:
-                tip_50_index = debug_simulate_solution_addition(
-                    protocol, tc_plate, unique_wells, primer_pipette,
-                    primer_rack, "primers", primer_volume, tip_50_index
-                )
-            else:
-                tip_200_index = debug_simulate_solution_addition(
-                    protocol, tc_plate, unique_wells, primer_pipette,
-                    primer_rack, "primers", primer_volume, tip_200_index
-                )
-        
-        # Simulate pause for manual additions if needed
-        if not same_template_dna or not same_primers:
-            manual_additions = []
-            if not same_template_dna:
-                manual_additions.append(f"template DNA ({template_dna_volume} µL)")
-            if not same_primers:
-                manual_additions.append(f"primers ({primer_volume} µL)")
-                
-            manual_text = " and ".join(manual_additions)
-            protocol.comment(f"DEBUG: Would pause here for manual addition of {manual_text}")
-        
+
         # Simulate thermocycler steps
         protocol.comment("DEBUG: Simulating moving PCR plate to thermocycler")
         protocol.comment("DEBUG: Simulating thermocycler program:")
