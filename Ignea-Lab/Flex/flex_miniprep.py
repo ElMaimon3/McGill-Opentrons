@@ -11,12 +11,6 @@ metadata = {
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
-# Utility functions
-def vol_to_height(vol: float) -> float:
-    '''Convert volume of liquid to appropriate pipette depth for 15mL tubes.'''
-    if vol < 2:
-        raise ValueError('One of the buffers or washes is too low! Please add more')
-    return round(-7.39231*vol + 111.885)
 
 def reservoir_vol_to_height(vol: float) -> float:
     '''Convert volume to height for 12-well reservoir (22mL wells).'''
@@ -116,7 +110,6 @@ def run(protocol: protocol_api.ProtocolContext):
     # Load labware
     initial_plate = protocol.load_labware('nest_96_wellplate_2ml_deep', 'A2')
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'B2')
-    tube_rack = protocol.load_labware('opentrons_15_tuberack_falcon_15ml_conical', 'B3')
     reservoir = protocol.load_labware('usascientific_12_reservoir_22ml', 'C2')
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', 'C1')
     
@@ -132,7 +125,7 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
     ])
     p300 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[
-        protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'D3'),
+        protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B3'),
         protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B1')  # B1 is free from thermocycler
     ])
     
