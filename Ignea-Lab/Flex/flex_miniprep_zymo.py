@@ -10,6 +10,17 @@ metadata = {
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
+# Runtime Parameters
+def add_parameters(parameters: protocol_api.Parameters):
+    parameters.add_csv_file(
+        variable_name="well_csv",
+        display_name="Sample locations csv",
+        description=(
+            "Table with three columns:"
+            " rows (e.g. 1), columns (e.g. B)"
+            " and wells (e.g. B1)"
+        )
+    )
 
 def reservoir_vol_to_height(vol: float) -> float:
     '''Convert volume to height for 12-well reservoir (22mL wells).'''
