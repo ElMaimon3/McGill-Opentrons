@@ -1,4 +1,4 @@
-# Opentrons Protocol for Pellet-Free Minipreps with Magbeads (Flex, 8-Channel) - FIXED
+# Opentrons Protocol for Pellet-Free Minipreps with Magbeads (Flex, 8-Channel) - PROPERLY FIXED
 from opentrons import protocol_api
 from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
@@ -66,14 +66,14 @@ def parse_csv_locations(csv_data: List[List[str]]) -> Tuple[List[str], List[str]
         if not row:  # Skip empty rows
             continue
             
-        for i in range(min(3, len(row))):  # Only process up to 3 columns or row length
-            if i < len(row) and row[i] and len(row[i].strip()) > 0:  # Check for non-empty values
+        for i in range(3):
+            if i < len(row) and len(row[i]) != 0:
                 if i == 0:
-                    sample_columns.append(row[i].strip())
+                    sample_columns.append(row[i])
                 elif i == 1:
-                    sample_rows.append(row[i].strip())
+                    sample_rows.append(row[i])
                 elif i == 2:
-                    sample_wells.append(row[i].strip())
+                    sample_wells.append(row[i])
                     
     return sample_columns, sample_rows, sample_wells
 
@@ -94,27 +94,11 @@ def get_unique_wells(protocol, plate, columns, rows, wells) -> List[str]:
     '''
     # Get all wells from the specified columns and rows
     destination_wells = []
-    
-    # Add wells from columns
     for col in columns:
-        if col in plate.columns_by_name():
-            destination_wells.extend(plate.columns_by_name()[col])
-        else:
-            protocol.comment(f"Warning: Column {col} not found in plate")
-    
-    # Add wells from rows
+        destination_wells.extend(plate.columns_by_name()[col])
     for row in rows:
-        if row in plate.rows_by_name():
-            destination_wells.extend(plate.rows_by_name()[row])
-        else:
-            protocol.comment(f"Warning: Row {row} not found in plate")
-    
-    # Add individual wells
-    for well in wells:
-        if well in plate.wells_by_name():
-            destination_wells.append(plate.wells_by_name()[well])
-        else:
-            protocol.comment(f"Warning: Well {well} not found in plate")
+        destination_wells.extend(plate.rows_by_name()[row])
+    destination_wells.extend([plate.wells_by_name()[well] for well in wells])
     
     # Remove duplicates
     unique_wells_dict = {}
@@ -127,9 +111,6 @@ def get_unique_wells(protocol, plate, columns, rows, wells) -> List[str]:
             unique_wells_dict[well_str] = True
         else:
             protocol.comment(f"Duplicate location found and removed: {well_str}")
-    
-    if not unique_wells:
-        raise ValueError("No valid wells found in CSV data")
             
     return unique_wells
 
@@ -144,9 +125,6 @@ def group_wells(unique_wells: List[str]) -> List[List[str]]:
     Returns:
         List of well groups, sorted by size (largest first)
     '''
-    if not unique_wells:
-        return []
-        
     # Sort wells by column, then by row
     sorted_wells = sorted(unique_wells, key=lambda x: (int(x[1:]), ord(x[0])))
     
@@ -181,14 +159,27 @@ class NotEnoughTips(Exception):
     pass
 
 def smart_pick_up(size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[str, Dict[str, bool]]:
-    '''Selects the appropriate tips based on the number needed.'''
+    '''
+    Selects the appropriate tips based on the number needed.
+    USING EXACT LOGIC FROM WORKING PCR PROTOCOL
+    
+    Args:
+        size: Number of tips needed
+        tips: Dictionary tracking available tips
+        
+    Returns:
+        Tuple of (tip location, updated tips dictionary)
+        
+    Raises:
+        NotEnoughTips: If there aren't enough tips available
+    '''
     if tips is None:
         tips = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
 
     def is_column_clear(column, start_row):
         for row in range(start_row):
             loc = f"{chr(65+row)}{column+1}"
-            if not tips.get(loc, False):  # Changed logic to check if tip is NOT available
+            if tips.get(loc, False):
                 return False
         return True
 
@@ -475,42 +466,24 @@ def run(protocol: protocol_api.ProtocolContext):
     mag_block = protocol.load_module('magneticBlockV1', 'D2')
     heater_shaker = protocol.load_module('heaterShakerModuleV1', 'A3')
 
-    # Load pipettes and tip racks with proper error handling
-    try:
-        # FIXED: Load tip racks first and ensure they're assigned properly
-        tiprack_50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
-        tiprack_1000 = protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B3')
-        
-        # FIXED: Use correct pipette names for Flex
-        p50 = protocol.load_instrument('flex_8channel_50', 'left', tip_racks=[tiprack_50])
-        p1000 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[tiprack_1000])
-        
-        # Verify tip racks are accessible
-        if not p50.tip_racks or not p1000.tip_racks:
-            raise ValueError("Tip racks not properly assigned to pipettes")
-            
-    except Exception as e:
-        protocol.comment(f"Error loading pipettes or tip racks: {str(e)}")
-        raise
+    # Load pipettes and tip racks
+    p50 = protocol.load_instrument('flex_8channel_50', 'left', tip_racks=[
+        protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
+    ])
+    p1000 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[
+        protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B3'),
+    ])
     
-    # Parse CSV data for well locations with error handling
-    try:
-        well_csv = protocol.params.well_csv
-        csv_data = well_csv.parse_as_csv()
-        sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
-        
-        # Get unique wells and group them using PCR protocol logic
-        unique_wells = get_unique_wells(protocol, initial_plate, sample_columns, sample_rows, sample_wells)
-        grouped_wells = group_wells(unique_wells)
-        
-        protocol.comment(f"Processing {len(unique_wells)} samples in {len(grouped_wells)} groups")
-        
-        if not grouped_wells:
-            raise ValueError("No valid well groups found")
-            
-    except Exception as e:
-        protocol.comment(f"Error parsing CSV or processing wells: {str(e)}")
-        raise
+    # Parse CSV data for well locations - using PCR protocol approach
+    well_csv = protocol.params.well_csv
+    csv_data = well_csv.parse_as_csv()
+    sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
+    
+    # Get unique wells and group them using PCR protocol logic
+    unique_wells = get_unique_wells(protocol, initial_plate, sample_columns, sample_rows, sample_wells)
+    grouped_wells = group_wells(unique_wells)  # Using PCR protocol grouping function
+    
+    protocol.comment(f"Processing {len(unique_wells)} samples in {len(grouped_wells)} groups")
     
     # Define reagent locations in reservoir
     lysis_buffer = reservoir['A1']
@@ -529,9 +502,9 @@ def run(protocol: protocol_api.ProtocolContext):
     depth1 = 20  # Depth to take supernatant from initial plate
     depth2 = 30  # Depth to take supernatant from collection plate
     
-    # FIXED: Initialize tip tracking with proper dictionaries
-    tips_50 = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
-    tips_1000 = {f"{chr(65+row)}{col+1}": True for row in range(8) for col in range(12)}
+    # Initialize tip tracking - EXACTLY LIKE PCR PROTOCOL
+    tips_50 = None
+    tips_1000 = None
 
     protocol.comment("Starting pellet-free miniprep protocol...")
     
