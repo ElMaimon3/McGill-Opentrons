@@ -356,12 +356,13 @@ def run(protocol: protocol_api.ProtocolContext):
     # Load waste chute
     waste_chute = protocol.load_waste_chute()
     
-    # Load labware
-    initial_plate = protocol.load_labware('nest_96_wellplate_2ml_deep', 'A2') # Eventually switch to Zymo 96 well block
+    # Load labware - optimized for H1 nozzle accessibility
+    elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', 'A2') # Temporarily in row A
+    initial_plate = protocol.load_labware('nest_96_wellplate_2ml_deep', 'C1') # Start in accessible position  
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'B2')
     reservoir = protocol.load_labware('usascientific_12_reservoir_22ml', 'C2')
-    elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', 'C1') # Eventually change to zymo elute plate
-    
+
+
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
     collection_plate = temp_module.load_labware('nest_96_wellplate_2ml_deep') # Eventually switch to Zymo 96 collection
@@ -448,10 +449,15 @@ def run(protocol: protocol_api.ProtocolContext):
     tips_1000 = transfer_supernatant(protocol, initial_plate, collection_plate, grouped_wells, 
                                    p1000, p1000.tip_racks[0], tips_1000, 750, depth1, "cleared lysate")
 
-    # Step 6: Move the initial plate off of the magnetic module
-    protocol.comment("Step 6: Moving initial plate off magnetic block...")
-    protocol.move_labware(initial_plate, 'A2', use_gripper=True)
+    # Step 6: Move the initial plate to staging area (no longer needed)
+    protocol.comment("Step 6: Moving used initial plate to staging area...")
+    protocol.move_labware(initial_plate, 'D4', use_gripper=True)
+    
+    # Step 6b: Move elution plate to accessible position for later use
+    protocol.comment("Step 6b: Moving elution plate to accessible position...")
+    protocol.move_labware(elute_plate, 'C1', use_gripper=True)
 
+    
     # Step 7: Add 30µL of mag binding beads to each sample in the collection plate
     protocol.comment("Step 7: Adding magnetic binding beads to collection plate...")
     tips_50 = dispense_tube_reagent_and_mix(protocol, collection_plate, grouped_wells, p50, 
