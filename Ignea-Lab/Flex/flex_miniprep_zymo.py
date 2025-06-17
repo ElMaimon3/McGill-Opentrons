@@ -522,7 +522,9 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Step 2: Adding neutralization buffer...")
     tips_1000 = dispense_and_mix(protocol, initial_plate, grouped_wells, p1000, 
                                p1000.tip_racks[0], tips_1000, neutralization_buffer, 450, 20, "neutralization buffer")
-    
+    # IndexError [line 524]: list index out of range
+
+
     # Step 3: Add 50µL mag clear beads to each sample, then mix 5 times
     protocol.comment("Step 3: Adding magnetic clearing beads...")
     tips_50 = dispense_tube_reagent_and_mix(protocol, initial_plate, grouped_wells, p50, 
