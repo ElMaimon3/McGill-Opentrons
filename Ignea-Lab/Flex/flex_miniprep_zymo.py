@@ -349,8 +349,8 @@ def run(protocol: protocol_api.ProtocolContext):
     p50 = protocol.load_instrument('flex_8channel_50', 'left', tip_racks=[
         protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
     ])
-    p300 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[
-        protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B3'),
+    p200 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[
+        protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B3'),
     ])
     
     # Parse CSV data for well locations
