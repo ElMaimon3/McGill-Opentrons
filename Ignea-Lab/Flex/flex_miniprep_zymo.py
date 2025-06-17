@@ -311,7 +311,7 @@ def remove_supernatant(protocol, plate, grouped_wells, pipette, tips_rack, tips,
             tip_attached = True
         
         # Remove supernatant
-        pipette.aspirate(volume, source_loc.bottom(depth))
+        pipette.aspirate(volume, source_loc.top(-depth))
         pipette.dispense(volume, waste_well)
         pipette.blow_out(waste_well.top())
         
@@ -375,9 +375,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     
     # Small reagents in tube racks
-    mag_clear_beads = small_tube_rack['A1']
-    mag_bind_beads = small_tube_rack['A3']
-    elution_buffer = small_tube_rack['A2']
+    mag_clear_beads = small_tube_rack['A1'].top(-37)
+    mag_bind_beads = small_tube_rack['A3'].top(-37)
+    elution_buffer = small_tube_rack['A2'].top(-37)
 
     
     # Protocol parameters
