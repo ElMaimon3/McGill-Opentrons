@@ -244,28 +244,50 @@ def configure_pipette_for_group(pipette, group_size: int, last_size: int):
     
     return keep_tips, group_size
 
-def dispense_and_mix(protocol, plate, grouped_wells, pipette, tips_rack, tips, 
-                     source_well, volume, mix_reps, solution_name="solution"):
-    '''Dispenses solution and mixes - for reservoir reagents only.'''
-    protocol.comment(f"Adding {volume} µL of {solution_name} to each sample and mixing {mix_reps} times")
+def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, tips, 
+                      secondary_location, volume, height_tracker, max_volume, solution_name="solution", supernatant_mode=None, depth=0, mix_after=0):
+    '''
+    Smart function for handling solutions in the miniprep protocol.
     
-    # Determine max volume per pipette operation based on tip rack
-    max_volume = 50 if pipette.max_volume <= 50 else 200
+    Args:
+        protocol: Protocol context
+        working_plate: Working plate
+        grouped_wells: Grouped well locations
+        pipette: Pipette to use
+        tips_rack: Tip rack to use
+        tips: Dictionary of available tips
+        secondary_location: Source well in reservoir or destination of supernatant
+        volume: Volume to dispense
+        height_tracker: Tracker for liquid height in the source well
+        solution_name: Name of the solution (for logging)
+        supernatant_mode: For specifying if we are working with supernatant from samples. Accepted values are:
+            - None or empty string for regular use
+            - "Transfer" to transfer to another plate
+            - "Discard" to discard
+        depth: bypasses height tracker if working with supernatant
+        mix_after: Number of times to mix if pipette mixing is required
+        
+    Returns:
+        Updated tips dictionary and height tracker
+    '''
+    if not supernatant_mode:
+        protocol.comment(f"Adding {volume} µL of {solution_name} to each sample")
+    elif supernatant_mode == "Discard":
+        protocol.comment(f"Removing {volume} µL of {solution_name} from samples and discarding")
+    elif supernatant_mode == "Transfer":
+        protocol.comment(f"Transfering {volume} µL of {solution_name}")
+    else:
+        raise TypeError("Unrecognized supernatant mode")
     
     last_size = 0
     tip_attached = False
     
     for i, group in enumerate(grouped_wells):
         group_size = len(group)
-        
-        # Validate group has wells
-        if group_size == 0:
-            continue
-            
-        # Determine the location to dispense to - using PCR protocol logic
-        loc = plate.wells_by_name()[group[-1]]
+        # Determine the location to dispense to
+        loc = working_plate.wells_by_name()[group[-1]]
         if group_size == 8:
-            loc = plate.wells_by_name()[group[0]]
+            loc = working_plate.wells_by_name()[group[0]]
         
         # Configure pipette based on group size
         keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
@@ -279,146 +301,96 @@ def dispense_and_mix(protocol, plate, grouped_wells, pipette, tips_rack, tips,
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
         
-        # Dispense using transfer if volume exceeds capacity, otherwise single aspiration
-        if volume > max_volume:
-            pipette.transfer(volume, source_well, loc, new_tip='never')
-        else:
-            pipette.aspirate(volume, source_well)
-            pipette.dispense(volume, loc)
-        
-        # Mix
-        mix_volume = min(volume * 0.8, max_volume)
-        pipette.mix(mix_reps, mix_volume, loc)
-        pipette.blow_out(loc.top())
-        
-        # Only drop the tip at the end of all groups or if we need different tips next time
-        is_last_group = (i == len(grouped_wells) - 1)
-        needs_different_tips_next = False
-        if not is_last_group:
-            next_group_size = len(grouped_wells[i+1])
-            needs_different_tips_next = (next_group_size != group_size)
+        quotient, remainder = divmod(volume, max_volume)
+        if not supernatant_mode:
+            for i in range(quotient):
+                # Dispense the solution
+                pipette.aspirate(max_volume, secondary_location.top(-reservoir_vol_to_height(height_tracker)))
+                pipette.dispense(max_volume, loc.top(-0.1))
+                pipette.blow_out(loc.top(-0.1))
+                height_tracker -= group_size * 0.001 * volume
             
-        if is_last_group or needs_different_tips_next:
+            if remainder != 0:
+                # Dispense the solution
+                pipette.aspirate(remainder, secondary_location.top(-reservoir_vol_to_height(height_tracker)))
+                pipette.dispense(remainder, loc.top(-0.1))
+                pipette.blow_out(loc.top(-0.1))
+                height_tracker -= group_size * 0.001 * volume
+
+            # Only drop the tip at the end of all groups or if we need different tips next time
+            is_last_group = (i == len(grouped_wells) - 1)
+            needs_different_tips_next = False
+            if not is_last_group:
+                next_group_size = len(grouped_wells[i+1])
+                needs_different_tips_next = (next_group_size != group_size)
+            
+            if mix_after:
+                pipette.mix(mix_after, max_volume, loc.top(-depth))
+                keep_tips = False
+                needs_different_tips_next = True
+                
+            if is_last_group or needs_different_tips_next:
+                pipette.drop_tip()
+                tip_attached = False
+        elif supernatant_mode == "Transfer":
+            dest = secondary_location.wells_by_name()[group[-1]]
+            if group_size == 8:
+                dest = secondary_location.wells_by_name()[group[0]]
+            for i in range(quotient):
+                pipette.aspirate(max_volume, loc.top(-depth))
+                pipette.dispense(max_volume, dest.top(-1))
+                pipette.blow_out(dest.top(-1))
+            
+            if remainder != 0:
+                pipette.aspirate(max_volume, loc.top(-depth))
+                pipette.dispense(max_volume, dest.top(-1))
+                pipette.blow_out(dest.top(-1))
             pipette.drop_tip()
             tip_attached = False
-    
-    return tips
-
-def dispense_tube_reagent_and_mix(protocol, plate, grouped_wells, pipette, tips_rack, tips, 
-                                 tube_well, volume, mix_reps, solution_name="solution"):
-    '''Dispenses reagent from tube rack (single tip aspiration) and mixes.'''
-    protocol.comment(f"Adding {volume} µL of {solution_name} to each sample and mixing {mix_reps} times")
-    protocol.comment(f"Note: Using single tip aspiration from tube rack for {solution_name}")
-    
-    # Determine max volume per pipette operation based on tip rack
-    max_volume = 50 if pipette.max_volume <= 50 else 200
-    
-    # Process each well individually since we need single tip aspiration from tube
-    for well in [w for group in grouped_wells for w in group]:
-        # Always use single tip for tube aspiration
-        pipette.configure_nozzle_layout(style=SINGLE, start="H1")
-        
-        # Pick up single tip
-        tip_loc, tips = smart_pick_up(1, tips)
-        pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
-        
-        # Aspirate from tube with single tip and dispense to well
-        well_obj = plate.wells_by_name()[well]
-        
-        if volume > max_volume:
-            pipette.transfer(volume, tube_well, well_obj, new_tip='never')
-        else:
-            pipette.aspirate(volume, tube_well)
-            pipette.dispense(volume, well_obj)
-        
-        # Mix
-        mix_volume = min(volume * 0.8, max_volume)
-        pipette.mix(mix_reps, mix_volume, well_obj)
-        pipette.blow_out(well_obj.top())
-        
-        # Drop tip
-        pipette.drop_tip()
-    
-    return tips
-
-def transfer_supernatant(protocol, source_plate, dest_plate, grouped_wells, pipette, 
-                        tips_rack, tips, volume, depth, solution_name="supernatant"):
-    '''Transfers supernatant from source to destination plate.'''
-    protocol.comment(f"Transferring {volume} µL of {solution_name}")
-    
-    # Determine max volume per pipette operation based on tip rack
-    max_volume = 50 if pipette.max_volume <= 50 else 200
-    
-    last_size = 0
-    tip_attached = False
-    
-    for i, group in enumerate(grouped_wells):
-        group_size = len(group)
-        
-        if group_size == 0:
-            continue
-        
-        # Determine source and destination locations - using PCR protocol logic
-        if group_size == 8:
-            source_loc = source_plate.wells_by_name()[group[0]]
-            dest_loc = dest_plate.wells_by_name()[group[0]]
-        else:
-            source_loc = source_plate.wells_by_name()[group[-1]]
-            dest_loc = dest_plate.wells_by_name()[group[-1]]
-        
-        # Configure pipette based on group size
-        keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
-        
-        # Pick up tips if needed
-        if not keep_tips:
-            if tip_attached:
-                pipette.drop_tip()
-                tip_attached = False
-            tip_loc, tips = smart_pick_up(group_size, tips)
-            pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
-            tip_attached = True
-        
-        # Transfer using multiple aspirations if needed
-        if volume > max_volume:
-            pipette.transfer(volume, source_loc.top(-depth), dest_loc, new_tip='never')
-        else:
-            pipette.aspirate(volume, source_loc.top(-depth))
-            pipette.dispense(volume, dest_loc)
-        
-        pipette.blow_out(dest_loc.top())
-        
-        # Only drop the tip at the end of all groups or if we need different tips next time
-        is_last_group = (i == len(grouped_wells) - 1)
-        needs_different_tips_next = False
-        if not is_last_group:
-            next_group_size = len(grouped_wells[i+1])
-            needs_different_tips_next = (next_group_size != group_size)
+            keep_tips = False
+        elif supernatant_mode == "Discard":
+            for i in range(quotient):
+                pipette.aspirate(max_volume, loc.top(-depth))
+                pipette.dispense(max_volume, secondary_location)
             
-        if is_last_group or needs_different_tips_next:
+            if remainder != 0:
+                pipette.aspirate(max_volume, loc.top(-depth))
+                pipette.dispense(max_volume, secondary_location)
             pipette.drop_tip()
             tip_attached = False
+            keep_tips = False
     
     return tips
 
-def remove_supernatant(protocol, plate, grouped_wells, pipette, tips_rack, tips, 
-                      volume, depth, waste_well):
-    '''Removes and discards supernatant.'''
-    protocol.comment(f"Removing and discarding {volume} µL of supernatant")
+def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_rack, tips, 
+                      tube, volume, max_volume, solution_name="solution", depth=0, mix_after=0):
+    '''
+    Smart function for dispensing solutions from single tubes in the miniprep protocol.
     
+    Args:
+        protocol: Protocol context
+        working_plate: Working plate
+        unique_wells: All well locations
+        pipette: Pipette to use
+        tips_rack: Tip rack to use
+        tips: Dictionary of available tips
+        tube: Source tube
+        volume: Volume to dispense
+        solution_name: Name of the solution (for logging)
+        depth: depth in plate for mixing
+        mix_after: Number of times to mix if pipette mixing is required
+        
+    Returns:
+        Updated tips dictionary
+    '''
+    protocol.comment(f"Adding {volume} µL of {solution_name} to each sample")
     last_size = 0
     tip_attached = False
     
-    for i, group in enumerate(grouped_wells):
-        group_size = len(group)
-        
-        if group_size == 0:
-            continue
-        
-        # Determine source location - using PCR protocol logic
-        if group_size == 8:
-            source_loc = plate.wells_by_name()[group[0]]
-        else:
-            source_loc = plate.wells_by_name()[group[-1]]
+    for i, well in enumerate(unique_wells):
+        group_size = 1
+        # Determine the location to dispense to
+        loc = working_plate.wells_by_name()[well]
         
         # Configure pipette based on group size
         keep_tips, last_size = configure_pipette_for_group(pipette, group_size, last_size)
@@ -432,19 +404,30 @@ def remove_supernatant(protocol, plate, grouped_wells, pipette, tips_rack, tips,
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
         
-        # Remove supernatant
-        pipette.aspirate(volume, source_loc.bottom(depth))
-        pipette.dispense(volume, waste_well)
-        pipette.blow_out(waste_well.top())
-        
-        # Only drop the tip at the end of all groups or if we need different tips next time
-        is_last_group = (i == len(grouped_wells) - 1)
-        needs_different_tips_next = False
-        if not is_last_group:
-            next_group_size = len(grouped_wells[i+1])
-            needs_different_tips_next = (next_group_size != group_size)
+        quotient, remainder = divmod(volume, max_volume)
+        for i in range(quotient):
+            # Dispense the solution
+            pipette.aspirate(max_volume, tube)
+            pipette.dispense(max_volume, loc.top(-0.1))
+            pipette.blow_out(loc.top(-0.1))
             
-        if is_last_group or needs_different_tips_next:
+        if remainder != 0:
+            # Dispense the solution
+            pipette.aspirate(remainder, tube)
+            pipette.dispense(remainder, loc.top(-0.1))
+            pipette.blow_out(loc.top(-0.1))
+
+        # Only drop the tip at the end of all wells
+        is_last_well = (i == len(unique_wells) - 1)
+        needs_different_tips_next = False
+
+            
+        if mix_after:
+            pipette.mix(mix_after, max_volume, loc.top(-depth))
+            keep_tips = False
+            needs_different_tips_next = True
+                
+        if is_last_well or needs_different_tips_next:
             pipette.drop_tip()
             tip_attached = False
     
@@ -462,7 +445,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
-    collection_plate = temp_module.load_labware('nest_96_wellplate_2ml_deep')
+    temp_adapter = temp_module.load_adapter("opentrons_aluminum_flat_bottom_plate")
+    collection_plate = temp_adapter.load_labware('nest_96_wellplate_2ml_deep') # NEEDS CUSTOM LABWARE DEFINITON
     mag_block = protocol.load_module('magneticBlockV1', 'D2')
     heater_shaker = protocol.load_module('heaterShakerModuleV1', 'A3')
 
@@ -471,7 +455,7 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
     ])
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right', tip_racks=[
-        protocol.load_labware('opentrons_flex_96_tiprack_1000ul', 'B3'),
+        protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B3'),
     ])
     
     # Parse CSV data for well locations - using PCR protocol approach
@@ -492,6 +476,8 @@ def run(protocol: protocol_api.ProtocolContext):
     zyppy_wash = reservoir['A4']
     waste1 = reservoir['A11']
     waste2 = reservoir['A12']
+    waste1_content = 0
+    waste = waste1
     
     # Small reagents in tube racks
     mag_clear_beads = small_tube_rack['A1'].top(-37)
@@ -501,6 +487,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # Protocol parameters
     depth1 = 20  # Depth to take supernatant from initial plate
     depth2 = 30  # Depth to take supernatant from collection plate
+    depthmix1 = 30
+    depthmix2 = depth2
     
     # Initialize tip tracking - EXACTLY LIKE PCR PROTOCOL
     tips_50 = None
@@ -510,25 +498,24 @@ def run(protocol: protocol_api.ProtocolContext):
     
     # Step 1: Add 100µL of lysis buffer to each sample, then mix 5 times
     protocol.comment("Step 1: Adding lysis buffer...")
-    tips_1000 = dispense_and_mix(protocol, initial_plate, grouped_wells, p1000, 
-                              p1000.tip_racks[0], tips_1000, lysis_buffer, 100, 5, "lysis buffer")
+    tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
+                              p1000.tip_racks[0], tips_1000, lysis_buffer, 100, 20, 200, solution_name="lysis buffer", mix_after=5, depth=depthmix1)
     
     # Wait 5 minutes (offset to be less the more samples there are, to account for extra pipetting time)
-    wait_time = max(60, 300 - len(unique_wells) * 10)  # Minimum 1 minute, reduce by 10s per sample
-    protocol.comment(f"Waiting {wait_time} seconds for lysis...")
+    wait_time = max(60, 300 - len(grouped_wells) * 10)  # Minimum 1 minute, reduce by 10s per sample
+    protocol.comment(f"Waiting for lysis...")
     protocol.delay(seconds=wait_time)
     
     # Step 2: Add 450µL of neutralization buffer to each sample, then mix 20 times
     protocol.comment("Step 2: Adding neutralization buffer...")
-    tips_1000 = dispense_and_mix(protocol, initial_plate, grouped_wells, p1000, 
-                               p1000.tip_racks[0], tips_1000, neutralization_buffer, 450, 20, "neutralization buffer")
-    # IndexError [line 524]: list index out of range
+    tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
+                               p1000.tip_racks[0], tips_1000, neutralization_buffer, 450, 20, 200, "neutralization buffer",mix_after=20, depth=depthmix1)
 
 
     # Step 3: Add 50µL mag clear beads to each sample, then mix 5 times
     protocol.comment("Step 3: Adding magnetic clearing beads...")
-    tips_50 = dispense_tube_reagent_and_mix(protocol, initial_plate, grouped_wells, p50, 
-                                           p50.tip_racks[0], tips_50, mag_clear_beads, 50, 5, "magnetic clearing beads")
+    tips_50 = handle_solution_single(protocol, initial_plate, unique_wells, p50, p50.tip_racks[0], tips_50, 
+                      mag_clear_beads, 50, 50, solution_name="MagClear beads", depth=depth1, mix_after=5)
 
     # Step 4: Move the initial plate to the magnetic module with the gripper
     protocol.comment("Step 4: Moving initial plate to magnetic block...")
@@ -540,8 +527,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 5: Take 750µL from each sample in the initial plate and move it to the same location collection plate
     protocol.comment("Step 5: Transferring cleared lysate to collection plate...")
-    tips_1000 = transfer_supernatant(protocol, initial_plate, collection_plate, grouped_wells, 
-                                   p1000, p1000.tip_racks[0], tips_1000, 750, depth1, "cleared lysate")
+    tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, p1000.tip_racks[0],
+                                tips_1000, collection_plate, 750, 0, 200, "cleared lysate", "Transfer", depth1)
 
     # Step 6: Move the initial plate to staging area (no longer needed)
     protocol.comment("Step 6: Moving used initial plate to staging area...")
@@ -553,58 +540,12 @@ def run(protocol: protocol_api.ProtocolContext):
     
     # Step 7: Add 30µL of mag binding beads to each sample in the collection plate
     protocol.comment("Step 7: Adding magnetic binding beads to collection plate...")
-    tips_50 = dispense_tube_reagent_and_mix(protocol, collection_plate, grouped_wells, p50, 
-                                           p50.tip_racks[0], tips_50, mag_bind_beads, 30, 5, "magnetic binding beads")
+    tips_50 = handle_solution_single(protocol, collection_plate, unique_wells, p50, p50.tip_racks[0], tips_50, mag_bind_beads, 
+                                     30, 50, "magnetic binding beads", mix_after=2)
     
-    # Step 8: Mix each sample in the collection plate for 10 minutes
+    # Step 8: Mix each sample in the collection plate for 10 minutes, hopefully use shaker
     protocol.comment("Step 8: Mixing samples for 10 minutes for DNA binding...")
-    
-    # Calculate mixing cycles for 10 minutes total
-    mix_cycles = 30  # Mix every 20 seconds for 10 minutes
-    for cycle in range(mix_cycles):
-        if cycle % 5 == 0:  # Progress update every 5 cycles
-            protocol.comment(f"Mixing cycle {cycle + 1}/{mix_cycles}")
-        
-        # Mix each group
-        last_size = 0
-        tip_attached = False
-        
-        for i, group in enumerate(grouped_wells):
-            group_size = len(group)
-            if group_size == 0:
-                continue
-                
-            loc = collection_plate.wells_by_name()[group[-1]]
-            if group_size == 8:
-                loc = collection_plate.wells_by_name()[group[0]]
-            
-            # Configure pipette
-            keep_tips, last_size = configure_pipette_for_group(p1000, group_size, last_size)
-            
-            # Pick up tips if needed
-            if not keep_tips:
-                if tip_attached:
-                    p1000.drop_tip()
-                    tip_attached = False
-                try:
-                    tip_loc, tips_1000 = smart_pick_up(group_size, tips_1000)
-                    p1000.pick_up_tip(p1000.tip_racks[0].wells_by_name()[tip_loc])
-                    tip_attached = True
-                except (NotEnoughTips, KeyError):
-                    protocol.comment("Warning: Could not pick up tips for mixing, skipping cycle")
-                    break
-            
-            # Quick mix
-            p1000.mix(3, 200, loc)
-            
-            # Drop tips after last group in cycle
-            if i == len(grouped_wells) - 1:
-                p1000.drop_tip()
-                tip_attached = False
-        
-        # Wait between cycles
-        if cycle < mix_cycles - 1:
-            protocol.delay(seconds=20)
+       
      
     # Continue with remaining steps...
     # Step 9: Move collection plate to magnetic module
@@ -617,17 +558,17 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 10: Remove and discard supernatant
     protocol.comment("Step 10: Removing supernatant...")
-    tips_1000 = remove_supernatant(protocol, collection_plate, grouped_wells, p1000, 
-                                 p1000.tip_racks[0], tips_1000, 750, depth2, waste1)
-
+    tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, p1000.tip_racks[0], tips_1000, waste_chute, 750, 0, 200, 
+                                "cleared lysate", "Discard", depth2)
+    
     # Step 11: Move collection plate off magnetic block
     protocol.comment("Step 11: Moving collection plate off magnetic block...")
     protocol.move_labware(collection_plate, temp_module, use_gripper=True)
 
     # Step 12: Add endo wash buffer
     protocol.comment("Step 12: Adding endo wash buffer...")
-    tips_1000 = dispense_and_mix(protocol, collection_plate, grouped_wells, p1000, 
-                               p1000.tip_racks[0], tips_1000, endo_wash, 200, 15, "endo wash buffer")
+    tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, p1000.tip_racks[0], 
+                                tips_1000, waste_chute, 200, 20, 200, "endo wash buffer", depth=depthmix2, mix_after=2)
 
     # Step 13: Move to magnetic block
     protocol.comment("Step 13: Moving collection plate to magnetic block...")
@@ -639,8 +580,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 14: Remove endo wash supernatant
     protocol.comment("Step 14: Removing endo wash supernatant...")
-    tips_1000 = remove_supernatant(protocol, collection_plate, grouped_wells, p1000, 
-                                 p1000.tip_racks[0], tips_1000, 200, depth2, waste1)
+    tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, p1000.tip_racks[0], tips_1000, waste_chute, 200, 
+                                0, 200, "endo wash buffer", "Discard", depth2)
 
     # Steps 15-18: Zyppy wash (performed twice)
     for wash_round in range(2):
@@ -652,8 +593,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
         # Add Zyppy wash buffer
         protocol.comment(f"Step 16 (round {wash_round + 1}): Adding Zyppy wash buffer...")
-        tips_1000 = dispense_and_mix(protocol, collection_plate, grouped_wells, p1000, 
-                                   p1000.tip_racks[0], tips_1000, zyppy_wash, 400, 15, "Zyppy wash buffer")
+        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, p1000.tip_racks[0], tips_1000, zyppy_wash, 400, 
+                                    20, 200, "zyppy wash", depth=depthmix2, mix_after=2)
 
         # Move to magnetic block
         protocol.comment(f"Step 17 (round {wash_round + 1}): Moving collection plate to magnetic block...")
