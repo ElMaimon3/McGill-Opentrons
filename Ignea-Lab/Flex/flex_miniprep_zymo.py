@@ -606,8 +606,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
         # Remove Zyppy wash supernatant
         protocol.comment(f"Step 18 (round {wash_round + 1}): Removing Zyppy wash supernatant...")
-        tips_1000 = remove_supernatant(protocol, collection_plate, grouped_wells, p1000, 
-                                     p1000.tip_racks[0], tips_1000, 400, depth2, waste1)
+        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, p1000.tip_racks[0], tips_1000, waste_chute, 400, 
+                                    0, 200, "zyppy wash", "Discard")
+
 
     # Step 19: Set temperature and dry
     protocol.comment("Step 19: Setting temperature module to 65°C and moving collection plate...")
@@ -624,8 +625,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 21: Add elution buffer
     protocol.comment("Step 21: Adding elution buffer...")
-    tips_50 = dispense_tube_reagent_and_mix(protocol, collection_plate, grouped_wells, p50, 
-                                           p50.tip_racks[0], tips_50, elution_buffer, 40, 5, "elution buffer")
+    tips_50 = handle_solution_single(protocol, collection_plate, unique_wells, p50, p50.tip_racks[0], tips_50, elution_buffer, 40, 50, "elution buffer", 
+                                     depthmix2, 5)
 
     # Step 22: Move back to temperature module
     protocol.comment("Step 22: Moving collection plate back to temperature module...")
@@ -634,53 +635,6 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 23: Mix for elution
     protocol.comment("Step 23: Mixing samples for 5 minutes for elution...")
     
-    # Calculate mixing cycles for 5 minutes total
-    mix_cycles = 15  # Mix every 20 seconds for 5 minutes
-    for cycle in range(mix_cycles):
-        if cycle % 3 == 0:  # Progress update every 3 cycles
-            protocol.comment(f"Elution mixing cycle {cycle + 1}/{mix_cycles}")
-        
-        # Mix each group
-        last_size = 0
-        tip_attached = False
-        
-        for i, group in enumerate(grouped_wells):
-            group_size = len(group)
-            if group_size == 0:
-                continue
-                
-            loc = collection_plate.wells_by_name()[group[-1]]
-            if group_size == 8:
-                loc = collection_plate.wells_by_name()[group[0]]
-            
-            # Configure pipette
-            keep_tips, last_size = configure_pipette_for_group(p50, group_size, last_size)
-            
-            # Pick up tips if needed
-            if not keep_tips:
-                if tip_attached:
-                    p50.drop_tip()
-                    tip_attached = False
-                try:
-                    tip_loc, tips_50 = smart_pick_up(group_size, tips_50)
-                    p50.pick_up_tip(p50.tip_racks[0].wells_by_name()[tip_loc])
-                    tip_attached = True
-                except (NotEnoughTips, KeyError):
-                    protocol.comment("Warning: Could not pick up tips for mixing, skipping cycle")
-                    break
-            
-            # Quick mix
-            p50.mix(3, 30, loc)
-            
-            # Drop tips after last group in cycle
-            if i == len(grouped_wells) - 1:
-                p50.drop_tip()
-                tip_attached = False
-        
-        # Wait between cycles
-        if cycle < mix_cycles - 1:
-            protocol.delay(seconds=20)
-
     # Step 24: Final magnetic separation
     protocol.comment("Step 24: Moving collection plate to magnetic block for final separation...")
     protocol.move_labware(collection_plate, mag_block, use_gripper=True)
@@ -691,8 +645,9 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 25: Transfer purified DNA to elution plate
     protocol.comment("Step 25: Transferring purified DNA to elution plate...")
-    tips_50 = transfer_supernatant(protocol, collection_plate, elute_plate, grouped_wells, 
-                                  p50, p50.tip_racks[0], tips_50, 30, depth2, "purified DNA")
+    tips_50 = handle_solution(protocol, collection_plate, grouped_wells, p50, p50.tip_racks[0], tips_50, elute_plate, 30, 0, 50, 
+                              "miniprep", "Transfer")
+
 
     # Deactivate temperature module
     temp_module.deactivate()
