@@ -326,6 +326,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             
             if mix_after:
                 pipette.mix(mix_after, max_volume, loc.top(-depth))
+                pipette.blow_out(loc.top(-1))
                 keep_tips = False
                 needs_different_tips_next = True
                 
@@ -424,6 +425,7 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             
         if mix_after:
             pipette.mix(mix_after, max_volume, loc.top(-depth))
+            pipette.blow_out(loc.top(-1))
             keep_tips = False
             needs_different_tips_next = True
                 
