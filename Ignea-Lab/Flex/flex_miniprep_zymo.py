@@ -447,10 +447,11 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
-    temp_adapter = temp_module.load_adapter("opentrons_aluminum_flat_bottom_plate")
+    temp_adapter = temp_module.load_adapter("opentrons_96_deep_well_temp_mod_adapter")
     collection_plate = temp_adapter.load_labware('nest_96_wellplate_2ml_deep') # NEEDS CUSTOM LABWARE DEFINITON
     mag_block = protocol.load_module('magneticBlockV1', 'D2')
     heater_shaker = protocol.load_module('heaterShakerModuleV1', 'A3')
+    hs_adapter = heater_shaker.load_adapter('opentrons_96_deep_well_adapter')
 
     # Load pipettes and tip racks
     p50 = protocol.load_instrument('flex_8channel_50', 'left', tip_racks=[
@@ -615,7 +616,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 19: Set temperature and dry
     protocol.comment("Step 19: Setting temperature module to 65°C and moving collection plate...")
     temp_module.set_temperature(65)
-    protocol.move_labware(collection_plate, temp_module, use_gripper=True)
+    protocol.move_labware(collection_plate, temp_adapter, use_gripper=True)
 
     # Wait 30 minutes
     protocol.comment("Waiting 30 minutes at 65°C for drying...")
@@ -632,7 +633,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 22: Move back to temperature module
     protocol.comment("Step 22: Moving collection plate back to temperature module...")
-    protocol.move_labware(collection_plate, temp_module, use_gripper=True)
+    protocol.move_labware(collection_plate, temp_adapter, use_gripper=True)
 
     # Step 23: Mix for elution
     protocol.comment("Step 23: Mixing samples for 5 minutes for elution...")
