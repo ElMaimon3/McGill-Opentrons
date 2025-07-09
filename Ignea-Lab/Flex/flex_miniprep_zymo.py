@@ -399,6 +399,8 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             tip_attached = False
             keep_tips = False
     
+    if tip_attached:
+        pipette.drop_tip()
     return tips
 
 def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_rack, tips, 
