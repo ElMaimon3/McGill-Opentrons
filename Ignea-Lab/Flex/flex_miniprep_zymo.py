@@ -484,7 +484,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Load labware - optimized for H1 nozzle accessibility
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', 'A2') 
     small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C2')
-    reservoir = protocol.load_labware('custom_22ml_reservoir', 'B2')
+    reservoir = protocol.load_labware('custom_22ml_reservoir', 'C3')
 
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
@@ -499,7 +499,7 @@ def run(protocol: protocol_api.ProtocolContext):
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'B3')
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right')
-    tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'C3')
+    tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B2')
     
     # Parse CSV data for well locations - using PCR protocol approach
     well_csv = protocol.params.well_csv
@@ -739,8 +739,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Waiting 1 minute for final magnetic separation...")
     protocol.delay(minutes=1)
 
-    protocol.move_labware(reservoir, 'C1', use_gripper=True)
-    protocol.move_labware(elute_plate, 'B2', use_gripper=True)
+    protocol.move_labware(elute_plate, 'C1', use_gripper=True)
 
     # Step 25: Transfer purified DNA to elution plate
     protocol.comment("Step 25: Transferring purified DNA to elution plate...")
