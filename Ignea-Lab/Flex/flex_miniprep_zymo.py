@@ -579,6 +579,7 @@ def run(protocol: protocol_api.ProtocolContext):
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(800)
     protocol.delay(seconds=10)
+    heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
 
     # Step 4: Move the initial plate to the magnetic module with the gripper
