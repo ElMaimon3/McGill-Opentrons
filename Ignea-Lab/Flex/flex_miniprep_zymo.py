@@ -471,6 +471,8 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             pipette.drop_tip()
             tip_attached = False
     
+    if tip_attached:
+        pipette.drop_tip()
     return tips
 
 def run(protocol: protocol_api.ProtocolContext):
