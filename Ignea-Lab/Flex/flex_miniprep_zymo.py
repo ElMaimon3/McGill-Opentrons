@@ -483,8 +483,8 @@ def run(protocol: protocol_api.ProtocolContext):
     
     # Load labware - optimized for H1 nozzle accessibility
     elute_plate = protocol.load_labware('armadillo_96_wellplate_200ul_pcr_full_skirt', 'A2') 
-    small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'C2')
-    reservoir = protocol.load_labware('custom_22ml_reservoir', 'C3')
+    small_tube_rack = protocol.load_labware('opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap', 'B3')
+    reservoir = protocol.load_labware('custom_22ml_reservoir', 'C2')
 
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
@@ -497,7 +497,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load pipettes and tip racks
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
-    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'B3')
+    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right')
     tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B2')
     
