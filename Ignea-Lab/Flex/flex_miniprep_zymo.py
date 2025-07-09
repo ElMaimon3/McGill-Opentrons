@@ -489,7 +489,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Load modules
     temp_module = protocol.load_module('temperatureModuleV2', 'D1') 
     temp_adapter = temp_module.load_adapter("opentrons_96_deep_well_temp_mod_adapter")
-    collection_plate = protocol.load_labware('zymo_96_collection_plate', 'B3') # NEEDS CUSTOM LABWARE DEFINITON
+    collection_plate = protocol.load_labware('zymo_96_collection_plate', 'C1') # NEEDS CUSTOM LABWARE DEFINITON
     mag_block = protocol.load_module('magneticBlockV1', 'D2')
     heater_shaker = protocol.load_module('heaterShakerModuleV1', 'A3')
     hs_adapter = heater_shaker.load_adapter('opentrons_96_deep_well_adapter')
@@ -497,7 +497,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Load pipettes and tip racks
     p50 = protocol.load_instrument('flex_8channel_50', 'left')
-    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C1')
+    tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'B3')
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right')
     tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'C3')
     
@@ -739,7 +739,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Waiting 1 minute for final magnetic separation...")
     protocol.delay(minutes=1)
 
-    protocol.move_labware(reservoir, 'B3', use_gripper=True)
+    protocol.move_labware(reservoir, 'C1', use_gripper=True)
     protocol.move_labware(elute_plate, 'B2', use_gripper=True)
 
     # Step 25: Transfer purified DNA to elution plate
