@@ -27,7 +27,7 @@ def reservoir_vol_to_height(vol: float) -> float:
     if vol < 1:
         raise ValueError('Reservoir volume too low!')
     # Approximate function for 22mL reservoir wells
-    return round(-2.5*vol + 50)
+    return round(-2.5*vol + 51)
 
 def extract_well_name(well_str: str) -> str:
     '''
@@ -549,7 +549,7 @@ def run(protocol: protocol_api.ProtocolContext):
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(800)
+    heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=10)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
@@ -572,7 +572,7 @@ def run(protocol: protocol_api.ProtocolContext):
                                tiprack1000, tips_1000, neutralization_buffer, 450, 20, 200, "neutralization buffer")
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(800)
+    heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=45)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
@@ -584,7 +584,7 @@ def run(protocol: protocol_api.ProtocolContext):
                       mag_clear_beads, 50, 50, solution_name="MagClear beads")
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(800)
+    heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=10)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
@@ -618,11 +618,11 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Step 8: Mixing samples for 10 minutes for DNA binding...")
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(800)
+    heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=10)
     heater_shaker.deactivate_shaker()
     for i in range(17):
-            heater_shaker.set_and_wait_for_shake_speed(800)
+            heater_shaker.set_and_wait_for_shake_speed(1200)
             protocol.delay(seconds=5)
             heater_shaker.deactivate_shaker()
             protocol.delay(seconds=30)
@@ -651,7 +651,7 @@ def run(protocol: protocol_api.ProtocolContext):
                                 tips_1000, endo_wash, 200, 20, 200, "endo wash buffer")
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(800)
+    heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=30)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
@@ -684,7 +684,7 @@ def run(protocol: protocol_api.ProtocolContext):
         
         protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
         heater_shaker.close_labware_latch()
-        heater_shaker.set_and_wait_for_shake_speed(800)
+        heater_shaker.set_and_wait_for_shake_speed(1200)
         protocol.delay(seconds=30)
         heater_shaker.deactivate_shaker()
         heater_shaker.open_labware_latch()
@@ -706,6 +706,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 19: Set temperature and dry
     protocol.comment("Step 19: Setting temperature module to 65°C and moving collection plate...")
     temp_module.set_temperature(65)
+    protocol.move_labware(collection_plate, temp_adapter, use_gripper=True)
 
     # Step 20: Wait 30 minutes
     protocol.comment("Step 20: Waiting 30 minutes at 65°C for drying...")
@@ -726,7 +727,7 @@ def run(protocol: protocol_api.ProtocolContext):
     heater_shaker.set_and_wait_for_temperature(65)
     heater_shaker.deactivate_shaker()
     for i in range(5):
-            heater_shaker.set_and_wait_for_shake_speed(800)
+            heater_shaker.set_and_wait_for_shake_speed(1200)
             protocol.delay(seconds=5)
             heater_shaker.deactivate_shaker()
             protocol.delay(seconds=60)
