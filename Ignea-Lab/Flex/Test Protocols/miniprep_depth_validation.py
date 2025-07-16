@@ -4,8 +4,8 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead',
-    "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
+    'protocolName': 'Miniprep Depth Test',
+    "author": "Gabriel Straface (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
 requirements = {"robotType": "Flex", "apiLevel": "2.21"}
