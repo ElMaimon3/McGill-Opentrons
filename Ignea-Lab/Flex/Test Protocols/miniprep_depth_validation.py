@@ -551,3 +551,4 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000.move_to(collection_plate.wells_by_name()['A1'].top(-depth2))
     protocol.pause("Watch depth: 2b")
     protocol.home()
+    p1000.drop_tip()
