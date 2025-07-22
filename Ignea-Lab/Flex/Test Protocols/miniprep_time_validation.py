@@ -496,7 +496,6 @@ def run(protocol: protocol_api.ProtocolContext):
     # Parse CSV data for well locations - using PCR protocol approach
     grouped_wells = [['A1']]
 
-    protocol.comment(f"Processing {len(unique_wells)} samples in {len(grouped_wells)} groups")
     
     # Define reagent locations in reservoir
     lysis_buffer = reservoir['A1']
