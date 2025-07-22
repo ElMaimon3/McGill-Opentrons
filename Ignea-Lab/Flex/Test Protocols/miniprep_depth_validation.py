@@ -16,7 +16,7 @@ def add_parameters(parameters: protocol_api.Parameters):
         variable_name="initial_well_depth",
         display_name="Initial plate well depth",
         description="",
-        default=20,
+        default=30,
         minimum=1,
         maximum=50,
         unit="mm"
@@ -25,7 +25,7 @@ def add_parameters(parameters: protocol_api.Parameters):
         variable_name="collection_well_depth",
         display_name="Collection plate well depth",
         description="",
-        default=30,
+        default=29,
         minimum=1,
         maximum=50,
         unit="mm"

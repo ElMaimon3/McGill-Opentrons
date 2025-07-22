@@ -531,8 +531,8 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = small_tube_rack['A2'].top(-37)
     
     # Protocol parameters
-    depth1 = 20  # Depth to take supernatant from initial plate
-    depth2 = 30  # Depth to take supernatant from collection plate
+    depth1 = 30  # Depth to take supernatant from initial plate
+    depth2 = 29  # Depth to take supernatant from collection plate
     depthmix1 = 30
     depthmix2 = depth2
     
@@ -559,8 +559,8 @@ def run(protocol: protocol_api.ProtocolContext):
     '''Duration:
     5 minutes minus time it takes the gripper to move plate back and forth
     minus (pipetting time times number of groups)'''
-    gripper_travel_time = 15
-    pipetting_time_group = 10
+    gripper_travel_time = 80
+    pipetting_time_group = 27
     wait_time = 300 - gripper_travel_time - (len(grouped_wells) * pipetting_time_group)
     if wait_time > 0:
         protocol.comment(f"Waiting for lysis...")
