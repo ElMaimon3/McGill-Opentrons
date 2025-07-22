@@ -12,15 +12,6 @@ requirements = {"robotType": "Flex", "apiLevel": "2.21"}
 
 # Runtime Parameters
 def add_parameters(parameters: protocol_api.Parameters):
-    parameters.add_csv_file(
-        variable_name="well_csv",
-        display_name="Sample locations csv",
-        description=(
-            "Table with three columns:"
-            " rows (e.g. 1), columns (e.g. B)"
-            " and wells (e.g. B1)"
-        )
-    )
     parameters.add_int(
         variable_name="initial_well_depth",
         display_name="Initial plate well depth",
@@ -522,14 +513,6 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right')
     tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B2')
     
-    # Parse CSV data for well locations - using PCR protocol approach
-    well_csv = protocol.params.well_csv
-    csv_data = well_csv.parse_as_csv()
-    sample_columns, sample_rows, sample_wells = parse_csv_locations(csv_data)
-    
-    # Get unique wells and group them using PCR protocol logic
-    unique_wells = get_unique_wells(protocol, initial_plate, sample_columns, sample_rows, sample_wells)
-    grouped_wells = group_wells(unique_wells)  # Using PCR protocol grouping function
     
     # Small reagents in tube racks
     mag_clear_beads = small_tube_rack['A1'].top(-37)
