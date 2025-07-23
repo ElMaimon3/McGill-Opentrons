@@ -531,8 +531,8 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = small_tube_rack['A2'].top(-37)
     
     # Protocol parameters
-    depth1 = 30  # Depth to take supernatant from initial plate
-    depth2 = 29  # Depth to take supernatant from collection plate
+    depth1 = 21  # Depth to take supernatant from initial plate
+    depth2 = 28  # Depth to take supernatant from collection plate
     depthmix1 = 30
     depthmix2 = depth2
     
