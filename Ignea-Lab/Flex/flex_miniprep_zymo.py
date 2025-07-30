@@ -747,7 +747,8 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.comment("Waiting 1 minute for final magnetic separation...")
     protocol.delay(minutes=1)
 
-    protocol.move_labware(elute_plate, 'C1', use_gripper=True)
+    protocol.move_labware(tiprack1000, 'C1', use_gripper=True)
+    protocol.move_labware(elute_plate, 'B2', use_gripper=True)
 
     # Step 25: Transfer purified DNA to elution plate
     protocol.comment("Step 25: Transferring purified DNA to elution plate...")
