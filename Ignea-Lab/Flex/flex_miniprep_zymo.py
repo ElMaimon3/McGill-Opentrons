@@ -4,7 +4,7 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead',
+    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.0',
     "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
@@ -27,6 +27,8 @@ def reservoir_vol_to_height(vol: float) -> float:
     if vol < 1:
         raise ValueError('Reservoir volume too low!')
     # Approximate function for 22mL reservoir wells
+    if vol > 17:
+        return 8
     return round(-2.5*vol + 51)
 
 def extract_well_name(well_str: str) -> str:
@@ -531,7 +533,7 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = small_tube_rack['A2'].top(-37)
     
     # Protocol parameters
-    depth1 = 21  # Depth to take supernatant from initial plate
+    depth1 = 22  # Depth to take supernatant from initial plate
     depth2 = 28  # Depth to take supernatant from collection plate
     depthmix1 = 30
     depthmix2 = depth2
@@ -545,7 +547,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 1: Add 100µL of lysis buffer to each sample, then shake 10 seconds
     protocol.comment("Step 1: Adding lysis buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                              tiprack1000, tips_1000, lysis_buffer, 100, 20, 200, solution_name="lysis buffer")
+                              tiprack1000, tips_1000, lysis_buffer, 100, 15, 200, solution_name="lysis buffer")
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
@@ -569,7 +571,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 2: Add 450µL of neutralization buffer to each sample, then shake 45 seconds
     protocol.comment("Step 2: Adding neutralization buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                               tiprack1000, tips_1000, neutralization_buffer, 450, 20, 200, "neutralization buffer")
+                               tiprack1000, tips_1000, neutralization_buffer, 450, 15, 200, "neutralization buffer")
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
@@ -648,7 +650,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 12: Add endo wash buffer, then shake 30 seconds
     protocol.comment("Step 12: Adding endo wash buffer...")
     tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, 
-                                tips_1000, endo_wash, 200, 20, 200, "endo wash buffer")
+                                tips_1000, endo_wash, 200, 15, 200, "endo wash buffer")
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
@@ -671,6 +673,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Steps 15-18: Zyppy wash (performed twice)
     for wash_round in range(2):
+        ht = 15
         protocol.comment(f"Starting Zyppy wash round {wash_round + 1}/2")
 
         # Move off magnetic block
@@ -680,7 +683,8 @@ def run(protocol: protocol_api.ProtocolContext):
         # Add Zyppy wash buffer
         protocol.comment(f"Step 16 (round {wash_round + 1}): Adding Zyppy wash buffer...")
         tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, zyppy_wash, 400, 
-                                    20, 200, "zyppy wash")
+                                    ht, 200, "zyppy wash")
+        ht = ht - (0.4 * len(unique_wells))
         
         protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
         heater_shaker.close_labware_latch()

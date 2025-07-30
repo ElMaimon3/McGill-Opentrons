@@ -550,7 +550,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
-    
+    protocol.delay(seconds=1)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, temp_adapter, use_gripper=True)
