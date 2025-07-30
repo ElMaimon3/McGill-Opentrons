@@ -451,7 +451,7 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True        
         quotient, remainder = divmod(volume, max_volume)
-        for i in range(quotient):
+        for j in range(quotient):
             # Dispense the solution
             pipette.aspirate(max_volume, tube)
             pipette.dispense(max_volume, loc.top(-0.1))
