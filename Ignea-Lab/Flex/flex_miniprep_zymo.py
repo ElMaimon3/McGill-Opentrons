@@ -343,7 +343,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             else:
                 source_location = secondary_location
                 
-            for i in range(quotient):
+            for j in range(quotient):
                 # Dispense the solution
                 pipette.aspirate(max_volume, source_location.top(-reservoir_vol_to_height(height_tracker)))
                 pipette.dispense(max_volume, loc.top(-0.1))
