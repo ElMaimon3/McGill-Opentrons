@@ -543,7 +543,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tips_1000 = None
 
     protocol.comment("Starting pellet-free miniprep protocol...")
-
+    heater_shaker.open_labware_latch()
 
     # Step 3: Add 50µL mag clear beads to each sample, then shake 10 seconds
     protocol.comment("Step 3: Adding magnetic clearing beads...")
