@@ -29,7 +29,7 @@ def reservoir_vol_to_height(vol: float) -> float:
     # Approximate function for 22mL reservoir wells
     if vol > 17:
         return 8
-    return round(-2.5*vol + 51)
+    return round(-2.5*vol + 53)
 
 def extract_well_name(well_str: str) -> str:
     '''
@@ -528,9 +528,9 @@ def run(protocol: protocol_api.ProtocolContext):
     waste = waste1
     
     # Small reagents in tube racks
-    mag_clear_beads = small_tube_rack['A1'].top(-37)
-    mag_bind_beads = small_tube_rack['A3'].top(-37)
-    elution_buffer = small_tube_rack['A2'].top(-37)
+    mag_clear_beads = small_tube_rack['A1'].top(-36.5)
+    mag_bind_beads = small_tube_rack['A3'].top(-36.5)
+    elution_buffer = small_tube_rack['A2'].top(-36.5)
     
     # Protocol parameters
     depth1 = 22  # Depth to take supernatant from initial plate

@@ -4,7 +4,7 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'TEST: Pellet-Free Minipreps with Zyppy MagBead',
+    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.0',
     "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
@@ -27,7 +27,9 @@ def reservoir_vol_to_height(vol: float) -> float:
     if vol < 1:
         raise ValueError('Reservoir volume too low!')
     # Approximate function for 22mL reservoir wells
-    return round(-2.5*vol + 51)
+    if vol > 17:
+        return 8
+    return round(-2.5*vol + 53)
 
 def extract_well_name(well_str: str) -> str:
     '''
@@ -341,7 +343,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             else:
                 source_location = secondary_location
                 
-            for i in range(quotient):
+            for j in range(quotient):
                 # Dispense the solution
                 pipette.aspirate(max_volume, source_location.top(-reservoir_vol_to_height(height_tracker)))
                 pipette.dispense(max_volume, loc.top(-0.1))
@@ -449,7 +451,7 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True        
         quotient, remainder = divmod(volume, max_volume)
-        for i in range(quotient):
+        for j in range(quotient):
             # Dispense the solution
             pipette.aspirate(max_volume, tube)
             pipette.dispense(max_volume, loc.top(-0.1))
@@ -526,12 +528,12 @@ def run(protocol: protocol_api.ProtocolContext):
     waste = waste1
     
     # Small reagents in tube racks
-    mag_clear_beads = small_tube_rack['A1'].top(-37)
-    mag_bind_beads = small_tube_rack['A3'].top(-37)
-    elution_buffer = small_tube_rack['A2'].top(-37)
+    mag_clear_beads = small_tube_rack['A1'].top(-36.5)
+    mag_bind_beads = small_tube_rack['A3'].top(-36.5)
+    elution_buffer = small_tube_rack['A2'].top(-36.5)
     
     # Protocol parameters
-    depth1 = 21  # Depth to take supernatant from initial plate
+    depth1 = 22  # Depth to take supernatant from initial plate
     depth2 = 28  # Depth to take supernatant from collection plate
     depthmix1 = 30
     depthmix2 = depth2
@@ -541,40 +543,7 @@ def run(protocol: protocol_api.ProtocolContext):
     tips_1000 = None
 
     protocol.comment("Starting pellet-free miniprep protocol...")
-    
-    # Step 1: Add 100µL of lysis buffer to each sample, then shake 10 seconds
-    protocol.comment("Step 1: Adding lysis buffer...")
-    tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                              tiprack1000, tips_1000, lysis_buffer, 100, 20, 200, solution_name="lysis buffer")
-    heater_shaker.open_labware_latch()
-    protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
-    heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(1200)
-    protocol.delay(seconds=1)
-    heater_shaker.deactivate_shaker()
-    heater_shaker.open_labware_latch()
-    protocol.move_labware(initial_plate, temp_adapter, use_gripper=True)
 
-    # Wait
-    '''Duration:
-    5 minutes minus time it takes the gripper to move plate back and forth
-    minus (pipetting time times number of groups)'''
-    gripper_travel_time = 80
-    pipetting_time_group = 27
-    wait_time = 300 - gripper_travel_time - (len(grouped_wells) * pipetting_time_group)
-    if wait_time > 0:
-        protocol.comment(f"Waiting for lysis...")
-    
-    # Step 2: Add 450µL of neutralization buffer to each sample, then shake 45 seconds
-    protocol.comment("Step 2: Adding neutralization buffer...")
-    tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                               tiprack1000, tips_1000, neutralization_buffer, 450, 20, 200, "neutralization buffer")
-    protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
-    heater_shaker.close_labware_latch()
-    heater_shaker.set_and_wait_for_shake_speed(1200)
-    heater_shaker.deactivate_shaker()
-    heater_shaker.open_labware_latch()
-    protocol.move_labware(initial_plate, temp_adapter, use_gripper=True)
 
     # Step 3: Add 50µL mag clear beads to each sample, then shake 10 seconds
     protocol.comment("Step 3: Adding magnetic clearing beads...")
@@ -583,6 +552,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
+    protocol.delay(seconds=10)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
 
@@ -594,6 +564,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Wait 5 minutes
     protocol.comment("Waiting 5 minutes for magnetic separation...")
+    protocol.delay(minutes=5)
 
     # Step 5: Take 750µL from each sample in the initial plate and move it to the same location collection plate
     protocol.comment("Step 5: Transferring cleared lysate to collection plate...")
@@ -615,13 +586,13 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
-
+    protocol.delay(seconds=10)
     heater_shaker.deactivate_shaker()
     for i in range(17):
             heater_shaker.set_and_wait_for_shake_speed(1200)
-
+            protocol.delay(seconds=5)
             heater_shaker.deactivate_shaker()
-
+            protocol.delay(seconds=30)
     heater_shaker.open_labware_latch()
      
     # Step 9: Move collection plate to magnetic module
@@ -630,6 +601,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Wait 5 minutes
     protocol.comment("Waiting 5 minutes for magnetic separation...")
+    protocol.delay(minutes=5)
 
     # Step 10: Remove and discard supernatant
     protocol.comment("Step 10: Removing supernatant...")
@@ -643,11 +615,11 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 12: Add endo wash buffer, then shake 30 seconds
     protocol.comment("Step 12: Adding endo wash buffer...")
     tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, 
-                                tips_1000, endo_wash, 200, 20, 200, "endo wash buffer")
+                                tips_1000, endo_wash, 200, 15, 200, "endo wash buffer")
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
-
+    protocol.delay(seconds=30)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
 
@@ -657,6 +629,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Wait 2 minutes
     protocol.comment("Waiting 2 minutes for magnetic separation...")
+    protocol.delay(minutes=2)
 
     # Step 14: Remove endo wash supernatant
     protocol.comment("Step 14: Removing endo wash supernatant...")
@@ -665,6 +638,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Steps 15-18: Zyppy wash (performed twice)
     for wash_round in range(2):
+        ht = 15
         protocol.comment(f"Starting Zyppy wash round {wash_round + 1}/2")
 
         # Move off magnetic block
@@ -674,12 +648,13 @@ def run(protocol: protocol_api.ProtocolContext):
         # Add Zyppy wash buffer
         protocol.comment(f"Step 16 (round {wash_round + 1}): Adding Zyppy wash buffer...")
         tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, zyppy_wash, 400, 
-                                    20, 200, "zyppy wash")
+                                    ht, 200, "zyppy wash")
+        ht = ht - (0.4 * len(unique_wells))
         
         protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
         heater_shaker.close_labware_latch()
         heater_shaker.set_and_wait_for_shake_speed(1200)
-
+        protocol.delay(seconds=30)
         heater_shaker.deactivate_shaker()
         heater_shaker.open_labware_latch()
 
@@ -689,7 +664,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
         # Wait 2 minutes
         protocol.comment("Waiting 2 minutes for magnetic separation...")
-
+        protocol.delay(minutes=2)
 
         # Remove Zyppy wash supernatant
         protocol.comment(f"Step 18 (round {wash_round + 1}): Removing Zyppy wash supernatant...")
@@ -704,6 +679,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Step 20: Wait 30 minutes
     protocol.comment("Step 20: Waiting 30 minutes at 65°C for drying...")
+    protocol.delay(minutes=30)
     temp_module.deactivate()
 
     # Step 21: Add elution buffer
@@ -721,7 +697,9 @@ def run(protocol: protocol_api.ProtocolContext):
     heater_shaker.deactivate_shaker()
     for i in range(5):
             heater_shaker.set_and_wait_for_shake_speed(1200)
+            protocol.delay(seconds=5)
             heater_shaker.deactivate_shaker()
+            protocol.delay(seconds=60)
     heater_shaker.deactivate_heater()
     heater_shaker.open_labware_latch()
 
@@ -732,9 +710,10 @@ def run(protocol: protocol_api.ProtocolContext):
 
     # Wait 1 minute
     protocol.comment("Waiting 1 minute for final magnetic separation...")
+    protocol.delay(minutes=1)
 
-
-    protocol.move_labware(elute_plate, 'C1', use_gripper=True)
+    protocol.move_labware(tiprack1000, 'C1', use_gripper=True)
+    protocol.move_labware(elute_plate, 'B2', use_gripper=True)
 
     # Step 25: Transfer purified DNA to elution plate
     protocol.comment("Step 25: Transferring purified DNA to elution plate...")
