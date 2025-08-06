@@ -626,8 +626,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 12: Add endo wash buffer, then shake 30 seconds
     protocol.comment("Step 12: Adding endo wash buffer...")
     tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, 
-                                tips_1000, '3', 200, 15, 200, "endo wash buffer")
-    protocol.move_labware(collection_plate, hs_adapter, use_gripper=True, reservoir=reservoir)
+                                tips_1000, '3', 200, 15, 200, "endo wash buffer", reservoir=reservoir)
+    protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=30)
