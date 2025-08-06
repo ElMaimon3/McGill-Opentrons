@@ -4,7 +4,7 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.0',
+    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.1',
     "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
@@ -246,33 +246,8 @@ def configure_pipette_for_group(pipette, group_size: int, last_size: int):
     
     return keep_tips, group_size
 
-def get_reservoir_location(reservoir, base_location, group_size):
-    '''
-    Get the appropriate reservoir location based on group size.
-    For group size 8: use A row (top access)
-    For group sizes 1-7: use H row (bottom access)
-    
-    Args:
-        reservoir: The reservoir labware
-        base_location: The base location (e.g., reservoir['A1'])
-        group_size: Number of wells in the group
-        
-    Returns:
-        Appropriate reservoir well location
-    '''
-    # Extract column number from base location
-    base_well_name = str(base_location).split()[-1]  # Gets 'A1' from the well representation
-    column_num = base_well_name[1:]  # Gets '1' from 'A1'
-    
-    if group_size == 8:
-        # Use A row for 8-channel access
-        return reservoir[f'A{column_num}']
-    else:
-        # Use H row for 1-7 channel access
-        return reservoir[f'H{column_num}']
-
 def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, tips, 
-                      secondary_location, volume, height_tracker, max_volume, solution_name="solution", supernatant_mode=None, depth=0, mix_after=0):
+                      secondary_location, volume, height_tracker, max_volume, solution_name="solution", supernatant_mode=None, depth=0, mix_after=0, reservoir=None):
     '''
     Smart function for handling solutions in the miniprep protocol.
     
@@ -309,9 +284,6 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
     last_size = 0
     tip_attached = False
     
-    # Check if secondary_location is from a reservoir (for dynamic location adjustment)
-    is_reservoir = hasattr(secondary_location, 'parent') and 'reservoir' in str(secondary_location.parent).lower()
-    
     for i, group in enumerate(grouped_wells):
         group_size = len(group)
         # Determine the location to dispense to
@@ -338,8 +310,11 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
         quotient, remainder = divmod(volume, max_volume)
         if not supernatant_mode:
             # Determine the correct reservoir location based on group size
-            if is_reservoir:
-                source_location = get_reservoir_location(secondary_location.parent, secondary_location, group_size)
+            if reservoir:
+                if group_size == 8:
+                    source_location = reservoir.wells_by_name()['A'+secondary_location]
+                else:
+                    source_location = reservoir.wells_by_name()['H'+secondary_location]
             else:
                 source_location = secondary_location
                 
@@ -451,6 +426,7 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True        
         quotient, remainder = divmod(volume, max_volume)
+        pipette.mix(2, max_volume, tube)
         for j in range(quotient):
             # Dispense the solution
             pipette.aspirate(max_volume, tube)
@@ -533,9 +509,9 @@ def run(protocol: protocol_api.ProtocolContext):
     elution_buffer = small_tube_rack['A2'].top(-36.5)
     
     # Protocol parameters
-    depth1 = 22  # Depth to take supernatant from initial plate
-    depth2 = 28  # Depth to take supernatant from collection plate
-    depthmix1 = 30
+    depth1 = 23  # Depth to take supernatant from initial plate
+    depth2 = 27.5  # Depth to take supernatant from collection plate
+    depthmix1 = 28
     depthmix2 = depth2
     
     # Initialize tip tracking
@@ -547,7 +523,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 1: Add 100µL of lysis buffer to each sample, then shake 10 seconds
     protocol.comment("Step 1: Adding lysis buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                              tiprack1000, tips_1000, lysis_buffer, 100, 15, 200, solution_name="lysis buffer")
+                              tiprack1000, tips_1000, 1, 100, 15, 200, solution_name="lysis buffer", reservoir=reservoir)
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
@@ -571,7 +547,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 2: Add 450µL of neutralization buffer to each sample, then shake 45 seconds
     protocol.comment("Step 2: Adding neutralization buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                               tiprack1000, tips_1000, neutralization_buffer, 450, 15, 200, "neutralization buffer")
+                               tiprack1000, tips_1000, 2, 450, 15, 200, "neutralization buffer", reservoir=reservoir)
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
@@ -650,8 +626,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 12: Add endo wash buffer, then shake 30 seconds
     protocol.comment("Step 12: Adding endo wash buffer...")
     tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, 
-                                tips_1000, endo_wash, 200, 15, 200, "endo wash buffer")
-    protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
+                                tips_1000, 3, 200, 15, 200, "endo wash buffer")
+    protocol.move_labware(collection_plate, hs_adapter, use_gripper=True, reservoir=reservoir)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
     protocol.delay(seconds=30)
@@ -682,8 +658,8 @@ def run(protocol: protocol_api.ProtocolContext):
 
         # Add Zyppy wash buffer
         protocol.comment(f"Step 16 (round {wash_round + 1}): Adding Zyppy wash buffer...")
-        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, zyppy_wash, 400, 
-                                    ht, 200, "zyppy wash")
+        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, 4, 400, 
+                                    ht, 200, "zyppy wash", reservoir=reservoir)
         ht = ht - (0.4 * len(unique_wells))
         
         protocol.move_labware(collection_plate, hs_adapter, use_gripper=True)
