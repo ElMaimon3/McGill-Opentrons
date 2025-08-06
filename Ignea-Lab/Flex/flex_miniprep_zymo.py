@@ -4,7 +4,7 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.1',
+    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.2',
     "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
@@ -523,7 +523,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 1: Add 100µL of lysis buffer to each sample, then shake 10 seconds
     protocol.comment("Step 1: Adding lysis buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                              tiprack1000, tips_1000, 1, 100, 15, 200, solution_name="lysis buffer", reservoir=reservoir)
+                              tiprack1000, tips_1000, '1', 100, 15, 200, solution_name="lysis buffer", reservoir=reservoir)
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
@@ -547,7 +547,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 2: Add 450µL of neutralization buffer to each sample, then shake 45 seconds
     protocol.comment("Step 2: Adding neutralization buffer...")
     tips_1000 = handle_solution(protocol, initial_plate, grouped_wells, p1000, 
-                               tiprack1000, tips_1000, 2, 450, 15, 200, "neutralization buffer", reservoir=reservoir)
+                               tiprack1000, tips_1000, '2', 450, 15, 200, "neutralization buffer", reservoir=reservoir)
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
@@ -626,7 +626,7 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 12: Add endo wash buffer, then shake 30 seconds
     protocol.comment("Step 12: Adding endo wash buffer...")
     tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, 
-                                tips_1000, 3, 200, 15, 200, "endo wash buffer")
+                                tips_1000, '3', 200, 15, 200, "endo wash buffer")
     protocol.move_labware(collection_plate, hs_adapter, use_gripper=True, reservoir=reservoir)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
@@ -658,7 +658,7 @@ def run(protocol: protocol_api.ProtocolContext):
 
         # Add Zyppy wash buffer
         protocol.comment(f"Step 16 (round {wash_round + 1}): Adding Zyppy wash buffer...")
-        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, 4, 400, 
+        tips_1000 = handle_solution(protocol, collection_plate, grouped_wells, p1000, tiprack1000, tips_1000, '4', 400, 
                                     ht, 200, "zyppy wash", reservoir=reservoir)
         ht = ht - (0.4 * len(unique_wells))
         
