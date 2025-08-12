@@ -4,7 +4,7 @@ from opentrons.protocol_api import SINGLE, PARTIAL_COLUMN, ALL
 from typing import List, Dict, Tuple, Optional
 
 metadata = {
-    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.2',
+    'protocolName': 'Pellet-Free Minipreps with Zyppy MagBead v1.3',
     "author": "Gabriel Straface, Dan Voicu (Ignea Lab @ McGill University)",
     'description': '''Opentrons protocol for pellet-free minipreps with Zyppy magbeads (Flex). Uses 8-channel pipettes with intelligent tip management.''',
 }
@@ -21,6 +21,12 @@ def add_parameters(parameters: protocol_api.Parameters):
             " and wells (e.g. B1)"
         )
     )
+    parameters.add_bool(
+        variable_name="low_reagent",
+        display_name="Low Reagent Mode",
+        description="Enable if the reagent level in the reservoir is less than 3/4",
+        default=False
+    )
 
 def reservoir_vol_to_height(vol: float) -> float:
     '''Convert volume to height for 12-well reservoir (22mL wells).'''
@@ -28,7 +34,7 @@ def reservoir_vol_to_height(vol: float) -> float:
         raise ValueError('Reservoir volume too low!')
     # Approximate function for 22mL reservoir wells
     if vol > 17:
-        return 8
+        return 9
     return round(-2.5*vol + 53)
 
 def extract_well_name(well_str: str) -> str:
@@ -247,7 +253,7 @@ def configure_pipette_for_group(pipette, group_size: int, last_size: int):
     return keep_tips, group_size
 
 def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, tips, 
-                      secondary_location, volume, height_tracker, max_volume, solution_name="solution", supernatant_mode=None, depth=0, mix_after=0, reservoir=None):
+                      secondary_location, volume, height_tracker, max_volume, solution_name="solution", supernatant_mode=None, depth=0, mix_after=0, reservoir=None, low_reagent=False):
     '''
     Smart function for handling solutions in the miniprep protocol.
     
@@ -317,17 +323,26 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
                     source_location = reservoir.wells_by_name()['H'+secondary_location]
             else:
                 source_location = secondary_location
-                
+
+
             for j in range(quotient):
+                if low_reagent:
+                    rdepth = 41
+                else:
+                    rdepth = reservoir_vol_to_height(height_tracker)
                 # Dispense the solution
-                pipette.aspirate(max_volume, source_location.top(-reservoir_vol_to_height(height_tracker)))
+                pipette.aspirate(max_volume, source_location.top(-rdepth))
                 pipette.dispense(max_volume, loc.top(-0.1))
                 pipette.blow_out(loc.top(-0.1))
                 height_tracker -= group_size * 0.001 * volume
             
             if remainder != 0:
+                if low_reagent:
+                    rdepth = 41
+                else:
+                    rdepth = reservoir_vol_to_height(height_tracker)
                 # Dispense the solution
-                pipette.aspirate(remainder, source_location.top(-reservoir_vol_to_height(height_tracker)))
+                pipette.aspirate(remainder, source_location.top(-rdepth))
                 pipette.dispense(remainder, loc.top(-0.1))
                 pipette.blow_out(loc.top(-0.1))
                 height_tracker -= group_size * 0.001 * volume
@@ -481,7 +496,11 @@ def run(protocol: protocol_api.ProtocolContext):
     tiprack50 = protocol.load_labware('opentrons_flex_96_tiprack_50ul', 'C3')
     p1000 = protocol.load_instrument('flex_8channel_1000', 'right')
     tiprack1000 = protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'B2')
+    p1000.flow_rate.aspirate = 250
+    p1000.flow_rate.dispense = 300
+    p1000.flow_rate.blow_out = 716
     
+    low_reagent = protocol.params.low_reagent
     # Parse CSV data for well locations - using PCR protocol approach
     well_csv = protocol.params.well_csv
     csv_data = well_csv.parse_as_csv()
