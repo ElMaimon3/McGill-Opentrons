@@ -183,7 +183,7 @@ class NotEnoughTips(Exception):
     '''Exception raised when there aren't enough tips available.'''
     pass
 
-def smart_pick_up(size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[str, Dict[str, bool]]:
+def smart_pick_up(protocol, size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[str, Dict[str, bool]]:
     '''
     Selects the appropriate tips based on the number needed.
     USING EXACT LOGIC FROM WORKING PCR PROTOCOL
@@ -232,7 +232,10 @@ def smart_pick_up(size: int, tips: Optional[Dict[str, bool]] = None) -> Tuple[st
                     tips[f"{chr(65+row)}{col+1}"] = False
                 return loc, tips
 
-    raise NotEnoughTips("Not enough tips available")
+    protocol.pause("Please refill tips!")
+    loc, tips = smart_pick_up(size, None)
+    return loc, tips
+
 
 def configure_pipette_for_group(pipette, group_size: int, last_size: int):
     '''
@@ -322,11 +325,11 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             if tip_attached:
                 pipette.drop_tip()
                 tip_attached = False
-            tip_loc, tips = smart_pick_up(group_size, tips)
+            tip_loc, tips = smart_pick_up(protocol, group_size, tips)
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
         if not tip_attached:
-            tip_loc, tips = smart_pick_up(group_size, tips)
+            tip_loc, tips = smart_pick_up(protocol, group_size, tips)
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
 
@@ -450,11 +453,11 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             if tip_attached:
                 pipette.drop_tip()
                 tip_attached = False
-            tip_loc, tips = smart_pick_up(group_size, tips)
+            tip_loc, tips = smart_pick_up(protocol, group_size, tips)
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True
         if not tip_attached:
-            tip_loc, tips = smart_pick_up(group_size, tips)
+            tip_loc, tips = smart_pick_up(protocol, group_size, tips)
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True        
         quotient, remainder = divmod(volume, max_volume)
