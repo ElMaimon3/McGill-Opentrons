@@ -27,7 +27,24 @@ def add_parameters(parameters: protocol_api.Parameters):
         description="Enable if the reagent level in the reservoir is less than 3/4",
         default=False
     )
-
+    parameters.add_int(
+        variable_name="neut_time",
+        display_name="Neutralization Time",
+        description="",
+        default=45,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
+    )
+    parameters.add_int(
+        variable_name="elu_time",
+        display_name="Elution Time",
+        description="",
+        default=300,
+        minimum=1,
+        maximum=999,
+        unit="Seconds"
+    )
 def reservoir_vol_to_height(vol: float) -> float:
     '''Convert volume to height for 12-well reservoir (22mL wells).'''
     if vol < 1:
@@ -501,6 +518,8 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000.flow_rate.blow_out = 716
     
     low_reagent = protocol.params.low_reagent
+    neut_time = protocol.params.neut_time
+    elu_time = protocol.params.elu_time
     # Parse CSV data for well locations - using PCR protocol approach
     well_csv = protocol.params.well_csv
     csv_data = well_csv.parse_as_csv()
@@ -570,7 +589,7 @@ def run(protocol: protocol_api.ProtocolContext):
     protocol.move_labware(initial_plate, hs_adapter, use_gripper=True)
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_shake_speed(1200)
-    protocol.delay(seconds=45)
+    protocol.delay(seconds=neut_time)
     heater_shaker.deactivate_shaker()
     heater_shaker.open_labware_latch()
     protocol.move_labware(initial_plate, temp_adapter, use_gripper=True)
@@ -725,11 +744,24 @@ def run(protocol: protocol_api.ProtocolContext):
     heater_shaker.close_labware_latch()
     heater_shaker.set_and_wait_for_temperature(65)
     heater_shaker.deactivate_shaker()
-    for i in range(5):
-            heater_shaker.set_and_wait_for_shake_speed(1200)
-            protocol.delay(seconds=5)
-            heater_shaker.deactivate_shaker()
-            protocol.delay(seconds=60)
+
+    quotient, remainder = divmod(elu_time, 60)
+
+    # Main loop for full 60-second cycles
+    for i in range(quotient):
+        heater_shaker.set_and_wait_for_shake_speed(1200)
+        protocol.delay(seconds=5)
+        heater_shaker.deactivate_shaker()
+        protocol.delay(seconds=55)
+
+    # Handle remainder if it exists
+    if remainder > 0:
+        heater_shaker.set_and_wait_for_shake_speed(1200)
+        protocol.delay(seconds=5)
+        heater_shaker.deactivate_shaker()
+        if remainder > 5:
+            protocol.delay(seconds=remainder - 5)
+
     heater_shaker.deactivate_heater()
     heater_shaker.open_labware_latch()
 
