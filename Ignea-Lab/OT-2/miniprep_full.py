@@ -262,7 +262,6 @@ def run(protocol: protocol_api.ProtocolContext):
             p300.pick_up_tip()
             p300.mix(3,50,magbeads)
             p300.transfer(25,magbeads,mag_samples,new_tip='never')
-            p300.pick_up_tip()
             p300.transfer(300,isopropanol,mag_samples,new_tip='never')
             for s in mag_samples:
                 p300.mix(3,300,s)

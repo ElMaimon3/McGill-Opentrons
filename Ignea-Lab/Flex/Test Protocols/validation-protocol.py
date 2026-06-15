@@ -85,7 +85,7 @@ def run(protocol: protocol_api.ProtocolContext):
         protocol.delay(seconds=1)
     
     if current_volume > 0:
-        p1000.transfer(current_volume/1000, source_well.top(-height), dest_well, new_tip='never')
+        p1000.transfer(current_volume*1000, source_well.top(-height), dest_well, new_tip='never')
 
     p1000.drop_tip()
     # Print final confirmation

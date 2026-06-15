@@ -65,7 +65,7 @@ def run(protocol: protocol_api.ProtocolContext):
         available = [14.0 for i in range(available_res)]
         current_reservoir = 0
         beads = 0
-        names = {'A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12'}
+        names = ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12']
         p300.pick_up_tip()
         while beads < bead_num:
             if available[current_reservoir] < (8*0.001*bead_size):

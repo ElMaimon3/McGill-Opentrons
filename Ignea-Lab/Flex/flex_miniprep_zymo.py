@@ -233,7 +233,7 @@ def smart_pick_up(protocol, size: int, tips: Optional[Dict[str, bool]] = None) -
                 return loc, tips
 
     protocol.pause("Please refill tips!")
-    loc, tips = smart_pick_up(size, None)
+    loc, tips = smart_pick_up(protocol, size, None)
     return loc, tips
 
 
@@ -689,8 +689,8 @@ def run(protocol: protocol_api.ProtocolContext):
                                 0, 200, "endo wash buffer", "Discard", depth2)
 
     # Steps 15-18: Zyppy wash (performed twice)
+    ht = 15
     for wash_round in range(2):
-        ht = 15
         protocol.comment(f"Starting Zyppy wash round {wash_round + 1}/2")
 
         # Move off magnetic block

@@ -95,10 +95,10 @@ def run(protocol: protocol_api.ProtocolContext):
         num_steps = num_samples//8
         if num_samples%8==0:
             time_offset = 60*num_steps
-        else:        
+        else:
             time_offset = 60*(num_steps+1)
-    #else:
-    time_offset = 60*num_samples 
+    else:
+        time_offset = 60*num_samples
     if time_offset<300:
         protocol.delay(seconds=(300-time_offset))
 
@@ -113,7 +113,7 @@ def run(protocol: protocol_api.ProtocolContext):
     for sample in conc_samples:
         p300.pick_up_tip()
         p300.transfer(neutralization_buffer_amount, neutralization_buffer.top(-vol_to_height(available_neutralization)), sample, new_tip='never')
-        available_neutralization -= neutralization_buffer_amount
+        available_neutralization -= neutralization_buffer_amount/1000
         p300.mix(2, 300, sample)
         p300.blow_out(sample)
         p300.drop_tip()

@@ -330,13 +330,13 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             else:
                 source_location = secondary_location
                 
-            for i in range(quotient):
+            for j in range(quotient):
                 # Dispense the solution
                 pipette.aspirate(max_volume, source_location.top(-reservoir_vol_to_height(height_tracker)))
                 pipette.dispense(max_volume, loc.top(-0.1))
                 pipette.blow_out(loc.top(-0.1))
                 height_tracker -= group_size * 0.001 * volume
-            
+
             if remainder != 0:
                 # Dispense the solution
                 pipette.aspirate(remainder, source_location.top(-reservoir_vol_to_height(height_tracker)))
@@ -364,7 +364,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             dest = secondary_location.wells_by_name()[group[-1]]
             if group_size == 8:
                 dest = secondary_location.wells_by_name()[group[0]]
-            for i in range(quotient):
+            for j in range(quotient):
                 pipette.aspirate(max_volume, loc.top(-depth))
                 pipette.dispense(max_volume, dest.top(-1))
                 pipette.blow_out(dest.top(-1))
@@ -377,7 +377,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             tip_attached = False
             keep_tips = False
         elif supernatant_mode == "Discard":
-            for i in range(quotient):
+            for j in range(quotient):
                 pipette.aspirate(max_volume, loc.top(-depth))
                 pipette.dispense(max_volume, secondary_location)
             
@@ -438,12 +438,12 @@ def handle_solution_single(protocol, working_plate, unique_wells, pipette, tips_
             pipette.pick_up_tip(tips_rack.wells_by_name()[tip_loc])
             tip_attached = True        
         quotient, remainder = divmod(volume, max_volume)
-        for i in range(quotient):
+        for j in range(quotient):
             # Dispense the solution
             pipette.aspirate(max_volume, tube)
             pipette.dispense(max_volume, loc.top(-0.1))
             pipette.blow_out(loc.top(-0.1))
-            
+
         if remainder != 0:
             # Dispense the solution
             pipette.aspirate(remainder, tube)

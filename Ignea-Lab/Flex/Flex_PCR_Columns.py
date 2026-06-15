@@ -251,12 +251,38 @@ def run(protocol: protocol_api.ProtocolContext):
             mm1 -= 8 * 0.001 * master_mix_volume                     
         master_pipette.drop_tip()
     else:
-        vol = 15
-        p50.pick_up_tip()
-        while vol > 8 * 0.001 * 50:
-            p50.transfer(50,master_mix.top(-vol_to_height(vol)),primers)
-            vol -= 8 * 0.001 * 50
-        p50.drop_tip()
+        protocol.comment("DEBUG MODE: Simulating reagent transfers without dispensing")
+        if not primers_loaded:
+            if primer_volume < 50:
+                primer_pipette = p50
+            else:
+                primer_pipette = p200
+            primer_pipette.pick_up_tip()
+            for c in tc_plate.columns()[:cols]:
+                c = c[0]
+                protocol.comment(f"DEBUG: Moving to primers at height {vol_to_height(p1)} mm from top")
+                primer_pipette.move_to(primers.top(-vol_to_height(p1)))
+                protocol.delay(seconds=1)
+                primer_pipette.move_to(c.top())
+                protocol.delay(seconds=1)
+                p1 -= 8 * 0.001 * primer_volume
+            primer_pipette.drop_tip()
+
+        if master_mix_volume < 50:
+            master_pipette = p50
+        else:
+            master_pipette = p200
+
+        master_pipette.pick_up_tip()
+        for c in tc_plate.columns()[:cols]:
+            c = c[0]
+            protocol.comment(f"DEBUG: Moving to master mix at height {vol_to_height(mm1)} mm from top")
+            master_pipette.move_to(master_mix.top(-vol_to_height(mm1)))
+            protocol.delay(seconds=1)
+            master_pipette.move_to(c.top())
+            protocol.delay(seconds=1)
+            mm1 -= 8 * 0.001 * master_mix_volume
+        master_pipette.drop_tip()
 
 
 

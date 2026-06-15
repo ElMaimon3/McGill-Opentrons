@@ -283,7 +283,8 @@ def run(protocol: protocol_api.ProtocolContext):
     # Step 3: Add magnetic beads to mag plate
     protocol.comment("Adding magnetic beads to magnetic plate...")
     p50.configure_nozzle_layout(style=SINGLE, start="H1")
-    
+
+    default_p50_aspirate = p50.flow_rate.aspirate
     for well in sample_wells:
         tip_loc, tips_50 = smart_pick_up(1, tips_50)
         p50.pick_up_tip(p50.tip_racks[0].wells_by_name()[tip_loc])
@@ -292,7 +293,8 @@ def run(protocol: protocol_api.ProtocolContext):
         p50.transfer(40, magbeads.top(-37), mag_plate[well], new_tip='never')
         p50.blow_out(mag_plate[well])
         p50.drop_tip()
-    
+    p50.flow_rate.aspirate = default_p50_aspirate
+
     # Step 4: Transfer samples to magnetic plate
     protocol.comment("Transferring samples to magnetic plate...")
     
@@ -368,22 +370,24 @@ def run(protocol: protocol_api.ProtocolContext):
     
     # Step 7: Remove supernatant
     protocol.comment("Removing supernatant...")
-    
+
+    default_p300_aspirate = p300.flow_rate.aspirate
     for well in sample_wells:
         p300.configure_nozzle_layout(style=SINGLE, start="H1")
         p300.flow_rate.aspirate = 50
         tip_loc, tips_300 = smart_pick_up(1, tips_300)
         p300.pick_up_tip(p300.tip_racks[0].wells_by_name()[tip_loc])
-        
+
         for i in range(sample_volume//300):
             p300.transfer(300, mag_plate[well].top(-depth), waste_chute, new_tip='never')
-        
+
         remaining = sample_volume % 300
         if remaining > 0:
             p300.transfer(remaining, mag_plate[well].top(-depth), waste_chute, new_tip='never')
-        
+
         p300.drop_tip()
-    
+    p300.flow_rate.aspirate = default_p300_aspirate
+
     # Step 8: Wash cycles based on protocol
     protocol.comment("Performing wash cycles...")
     

@@ -377,7 +377,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             dest = secondary_location.wells_by_name()[group[-1]]
             if group_size == 8:
                 dest = secondary_location.wells_by_name()[group[0]]
-            for i in range(quotient):
+            for j in range(quotient):
                 pipette.aspirate(max_volume, loc.top(-depth))
                 pipette.dispense(max_volume, dest.top(-1))
                 pipette.blow_out(dest.top(-1))
@@ -390,7 +390,7 @@ def handle_solution(protocol, working_plate, grouped_wells, pipette, tips_rack, 
             tip_attached = False
             keep_tips = False
         elif supernatant_mode == "Discard":
-            for i in range(quotient):
+            for j in range(quotient):
                 pipette.aspirate(max_volume, loc.top(-depth))
                 pipette.dispense(max_volume, secondary_location)
             
